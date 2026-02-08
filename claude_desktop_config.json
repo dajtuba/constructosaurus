@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "claudehopper": {
+      "command": "node",
+      "args": [
+        "/Users/dryjohn/Desktop/rogers-house/dist/index.js"
+      ],
+      "env": {
+        "DATABASE_PATH": "/Users/dryjohn/Desktop/rogers-house/data/lancedb",
+        "OLLAMA_URL": "http://localhost:11434",
+        "EMBED_MODEL": "mxbai-embed-large"
+      }
+    }
+  }
+}
