@@ -19,14 +19,17 @@ AI-powered construction document processing system. Extract materials, quantitie
 Ask Claude:
 
 ```
-Clone https://github.com/dajtuba/constructosaurus.git to my Desktop, 
-run ./setup.sh, and handle any errors. Only show me errors or the 
-final success message. When done, tell me to restart Claude Desktop.
+Clone https://github.com/dajtuba/constructosaurus.git to my Desktop 
+(install git if needed), run ./setup.sh, and handle any errors. Only 
+show me errors or the final success message. When done, tell me to 
+restart Claude Desktop.
 ```
 
-Claude will clone, install everything (Ollama, AI models, dependencies), and configure itself. 
+Claude will install git (if needed), clone the repo, install everything (Ollama, AI models, dependencies), and configure itself.
 
-**Time:** 10-15 minutes | **Tokens:** ~500-1000 | **Your effort:** One copy/paste
+**Time:** 10-15 minutes | **Tokens:** ~500-1500 | **Your effort:** One copy/paste
+
+**Note:** On Mac, if git isn't installed, you'll see one popup asking to install Xcode Command Line Tools - just click "Install".
 
 See [QUICK_SETUP.md](QUICK_SETUP.md) for the exact prompt.
 

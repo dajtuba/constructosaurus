@@ -5,27 +5,34 @@ Roger, copy and paste this ONE prompt into Claude:
 ---
 
 ```
-Clone https://github.com/dajtuba/constructosaurus.git to my Desktop, 
-run ./setup.sh, and handle any errors. Only show me errors or the 
-final success message. When done, tell me to restart Claude Desktop.
+Clone https://github.com/dajtuba/constructosaurus.git to my Desktop 
+(install git if needed), run ./setup.sh, and handle any errors. Only 
+show me errors or the final success message. When done, tell me to 
+restart Claude Desktop.
 ```
 
 ---
 
 That's it! Claude will:
-1. Clone the repo to ~/Desktop/constructosaurus
-2. Run the setup script
-3. Fix any issues silently
-4. Only report errors or success
-5. Tell you to restart Claude Desktop
+1. **Install git if not present** (Mac: via Xcode tools, Linux: apt/yum)
+2. Clone the repo to ~/Desktop/constructosaurus
+3. Run the setup script
+4. Install Ollama and AI models
+5. Fix any issues silently
+6. Only report errors or success
+7. Tell you to restart Claude Desktop
 
 **Total time:** 10-15 minutes (mostly downloading AI models)
-**Token usage:** ~500-1000 tokens
+**Token usage:** ~500-1500 tokens (slightly more if git needs installing)
 **Roger's effort:** Copy/paste one prompt
 
 ## What Claude Does Automatically
 
 ```bash
+# If git not installed:
+# Mac: xcode-select --install (prompts user once)
+# Linux: sudo apt-get install git -y
+
 cd ~/Desktop
 git clone https://github.com/dajtuba/constructosaurus.git
 cd constructosaurus
@@ -35,14 +42,25 @@ cd constructosaurus
 # Reports success
 ```
 
+## If Git Installation Requires User Action
+
+On Mac, if git isn't installed, Claude will:
+1. Run `xcode-select --install`
+2. Tell Roger: "Click 'Install' in the popup that appeared"
+3. Wait for Roger to confirm
+4. Continue with clone and setup
+
+This is the ONLY potential user interaction needed.
+
 ## Alternative: More Control
 
 If Roger wants to see progress:
 
 ```
 Clone https://github.com/dajtuba/constructosaurus.git to my Desktop 
-and set it up. Show me progress for major steps (cloning, installing 
-Ollama, downloading models, building). Fix any errors automatically.
+(install git if needed) and set it up. Show me progress for major 
+steps (installing git, cloning, installing Ollama, downloading models, 
+building). Fix any errors automatically.
 ```
 
 ## For Troubleshooting
@@ -51,7 +69,7 @@ If something goes wrong:
 
 ```
 I have constructosaurus on my Desktop. Run diagnostics and fix any 
-issues with the setup. Check Ollama, models, npm build, and MCP 
+issues with the setup. Check git, Ollama, models, npm build, and MCP 
 configuration.
 ```
 
@@ -65,7 +83,8 @@ Roger just needs to:
 
 ## Token Usage Estimate
 
-- **One-prompt setup**: ~500-1000 tokens
+- **One-prompt setup (git installed)**: ~500-1000 tokens
+- **One-prompt setup (git needs install)**: ~1000-1500 tokens
 - **With progress updates**: ~1500-2000 tokens  
 - **With troubleshooting**: ~2000-3000 tokens
 - **Manual step-by-step**: ~5000+ tokens
