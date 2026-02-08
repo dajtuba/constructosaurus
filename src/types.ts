@@ -214,3 +214,35 @@ export interface TemporaryMaterial {
   quantity: number;
   duration?: string;
 }
+
+// Material Intelligence Types
+
+export enum MaterialCategory {
+  LUMBER = "lumber",
+  CONCRETE = "concrete",
+  STEEL = "steel",
+  MASONRY = "masonry",
+  FINISHES = "finishes",
+  MEP = "mep"
+}
+
+export interface Material {
+  id: string;
+  name: string;
+  category: MaterialCategory;
+  properties: Record<string, any>;
+  equivalents: string[];
+}
+
+export interface MaterialEquivalence {
+  from: string;
+  to: string;
+  conversionFactor: number;
+  conditions?: string;
+}
+
+export interface UnitConversion {
+  fromUnit: string;
+  toUnit: string;
+  conversionFactor: number;
+}
