@@ -246,3 +246,47 @@ export interface UnitConversion {
   toUnit: string;
   conversionFactor: number;
 }
+
+// Cross-Document Correlation Types
+
+export enum DocumentRelationType {
+  SUPERSEDES = "supersedes",
+  REFERENCES = "references",
+  CONFLICTS = "conflicts"
+}
+
+export enum DocumentHierarchy {
+  ADDENDA = 1,
+  SPECIFICATION = 2,
+  DRAWING = 3,
+  GENERAL_NOTE = 4
+}
+
+export interface DocumentRelationship {
+  type: DocumentRelationType;
+  fromDocId: string;
+  toDocId: string;
+  date: string;
+}
+
+export interface DocumentVersion {
+  id: string;
+  version: string;
+  date: string;
+  status: 'current' | 'superseded';
+}
+
+export enum ConflictType {
+  QUANTITY_MISMATCH = "quantity_mismatch",
+  SPECIFICATION_DIFFERENCE = "specification_difference",
+  DIMENSION_CONFLICT = "dimension_conflict",
+  SUPERSEDED_REFERENCE = "superseded_reference"
+}
+
+export interface Conflict {
+  type: ConflictType;
+  documents: string[];
+  description: string;
+  resolution?: string;
+  priority: number;
+}
