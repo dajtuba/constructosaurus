@@ -14,7 +14,23 @@ AI-powered construction document processing system. Extract materials, quantitie
 
 ## Quick Start
 
-### Option 1: Automated Setup (Recommended)
+### The Easiest Way (One Prompt)
+
+Ask Claude:
+
+```
+Clone https://github.com/dajtuba/constructosaurus.git to my Desktop, 
+run ./setup.sh, and handle any errors. Only show me errors or the 
+final success message. When done, tell me to restart Claude Desktop.
+```
+
+Claude will clone, install everything (Ollama, AI models, dependencies), and configure itself. 
+
+**Time:** 10-15 minutes | **Tokens:** ~500-1000 | **Your effort:** One copy/paste
+
+See [QUICK_SETUP.md](QUICK_SETUP.md) for the exact prompt.
+
+### Manual Setup
 
 ```bash
 git clone https://github.com/dajtuba/constructosaurus.git
@@ -22,29 +38,14 @@ cd constructosaurus
 ./setup.sh
 ```
 
-The setup script automatically installs everything (Ollama, AI models, dependencies).
-
-### Option 2: Setup with Claude's Help
-
-Clone the repository, then ask Claude:
-
-```
-I just cloned constructosaurus. Run ./setup.sh and handle any errors. 
-Only show me errors or the final success message. When done, tell me 
-to restart Claude Desktop.
-```
-
-Claude will run setup and troubleshoot any issues automatically.
-
-See [QUICK_SETUP.md](QUICK_SETUP.md) for the exact prompt.
-
 ### After Setup
 
 ```bash
 # Add your PDFs
-cp ~/your-project/*.pdf source/
+cp ~/your-project/*.pdf ~/Desktop/constructosaurus/source/
 
 # Process them
+cd ~/Desktop/constructosaurus
 npm run process source data/lancedb
 
 # Restart Claude Desktop, then query!

@@ -1,44 +1,55 @@
 # Constructosaurus - Setup for Roger
 
+## The Absolute Easiest Way
+
+Copy this ONE prompt into Claude:
+
+```
+Clone https://github.com/dajtuba/constructosaurus.git to my Desktop, 
+run ./setup.sh, and handle any errors. Only show me errors or the 
+final success message. When done, tell me to restart Claude Desktop.
+```
+
+Wait 10-15 minutes, restart Claude Desktop, and you're done!
+
+---
+
 ## What This Is
 
 Constructosaurus processes your construction PDFs (drawings, specs, schedules) and lets you query them in Claude Desktop using natural language.
 
 **Cost**: $0 (uses local Ollama AI instead of expensive APIs)
 
-## Installation
+## What Claude Does For You
 
-### 1. Clone Repository
+1. ✅ Clones repository to your Desktop
+2. ✅ Installs Ollama (local AI)
+3. ✅ Downloads AI models (~8GB)
+4. ✅ Installs dependencies
+5. ✅ Builds the project
+6. ✅ Configures Claude Desktop
+7. ✅ Tests everything
+8. ✅ Reports success
+
+**You do:** Copy/paste one prompt
+**Claude does:** Everything else
+
+## After Setup
+
+### 1. Restart Claude Desktop
+
+Quit and restart Claude Desktop to load the MCP server.
+
+### 2. Add Your Documents
 
 ```bash
-git clone https://github.com/dajtuba/constructosaurus.git
-cd constructosaurus
+cp ~/your-project-pdfs/*.pdf ~/Desktop/constructosaurus/source/
 ```
 
-### 2. Run Setup
+### 3. Process Documents
 
 ```bash
-./setup.sh
-```
-
-This will:
-- Install Node.js dependencies
-- Download AI models (llava:13b, nomic-embed-text)
-- Configure Claude Desktop
-- Create directories
-
-**Time**: ~10 minutes (downloading models)
-
-### 3. Add Your Documents
-
-```bash
-# Copy your PDFs to source directory
-cp ~/your-project-pdfs/*.pdf source/
-```
-
-### 4. Process Documents
-
-```bash
+cd ~/Desktop/constructosaurus
 npm run process source data/lancedb
 ```
 
@@ -46,11 +57,7 @@ This extracts everything from your PDFs using local AI.
 
 **Time**: ~1-2 minutes per PDF page
 
-### 5. Restart Claude Desktop
-
-Quit and restart Claude Desktop to load the MCP server.
-
-### 6. Query Your Documents
+### 4. Query Your Documents
 
 In Claude Desktop, ask questions like:
 
