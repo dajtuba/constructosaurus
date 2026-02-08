@@ -1,8 +1,8 @@
-# ClaudeHopper 2.0 Audit vs Original
+# Constructosaurus 2.0 Audit vs Original
 
 ## Executive Summary
 
-**Current Status**: Your project has a solid RAG foundation but is missing critical construction-specific features that make the original ClaudeHopper valuable for real-world construction document analysis.
+**Current Status**: Your project has a solid RAG foundation but is missing critical construction-specific features that make the original Constructosaurus valuable for real-world construction document analysis.
 
 **Primary Gap**: The original focuses on **extracting actionable information** (materials lists, quantities, specifications) while your version focuses on **search and retrieval**.
 
@@ -279,7 +279,7 @@ To align with user's goal of "compiling materials and supply lists":
 
 **Your project is a solid RAG system** but it's optimized for **search/retrieval**, not **extraction/compilation**.
 
-The original ClaudeHopper is designed for **construction professionals who need to extract actionable data** (materials, quantities, specs) from drawings.
+The original Constructosaurus is designed for **construction professionals who need to extract actionable data** (materials, quantities, specs) from drawings.
 
 To meet your stated goal, you need to pivot from "search engine" to "data extraction pipeline" with these core additions:
 

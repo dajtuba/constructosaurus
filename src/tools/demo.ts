@@ -8,7 +8,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 async function demo() {
-  console.log("🏗️  ClaudeHopper 2.0 Demo\n");
+  console.log("🏗️  Constructosaurus 2.0 Demo\n");
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   if (!anthropicKey) {

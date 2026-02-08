@@ -1,4 +1,4 @@
-# ClaudeHopper MCP Enhancement Plan
+# Constructosaurus MCP Enhancement Plan
 
 **Construction Document Intelligence Platform**
 
@@ -8,7 +8,7 @@ _Version 1.0 - February 2, 2026_
 
 ## Executive Summary
 
-ClaudeHopper MCP currently provides effective text-based search across construction documents but lacks critical capabilities for structured data extraction, dimensional analysis, and visual element interpretation. This enhancement plan outlines a phased approach to transform it into a production-grade construction document intelligence system capable of automated quantity takeoffs, cross-reference resolution, and comprehensive material extraction.
+Constructosaurus MCP currently provides effective text-based search across construction documents but lacks critical capabilities for structured data extraction, dimensional analysis, and visual element interpretation. This enhancement plan outlines a phased approach to transform it into a production-grade construction document intelligence system capable of automated quantity takeoffs, cross-reference resolution, and comprehensive material extraction.
 
 **Key Goals:**
 
@@ -2381,7 +2381,7 @@ def test_against_manual_takeoff():
 
 ## Conclusion
 
-This enhancement plan transforms ClaudeHopper from a basic text search tool into a comprehensive construction document intelligence platform. The phased approach ensures:
+This enhancement plan transforms Constructosaurus from a basic text search tool into a comprehensive construction document intelligence platform. The phased approach ensures:
 
 - **Incremental value delivery** - Each phase adds standalone capability
 - **Risk management** - Early phases validate approach before heavy investment
@@ -2400,5 +2400,5 @@ This enhancement plan transforms ClaudeHopper from a basic text search tool into
 
 ---
 
-_Document prepared for ClaudeHopper MCP development team_
+_Document prepared for Constructosaurus MCP development team_
 _Version 1.0 - February 2, 2026_

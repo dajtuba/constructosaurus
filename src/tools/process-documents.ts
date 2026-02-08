@@ -8,7 +8,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 async function processDocuments() {
-  console.log("📚 ClaudeHopper 2.0 - Document Processing\n");
+  console.log("📚 Constructosaurus 2.0 - Document Processing\n");
 
   // Get source directory from args or use default
   const sourceDir = process.argv[2] || "./source";

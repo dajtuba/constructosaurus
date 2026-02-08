@@ -1,4 +1,4 @@
-# ClaudeHopper 2.0 - MCP Setup Instructions
+# Constructosaurus 2.0 - MCP Setup Instructions
 
 ## Step 1: Verify Files Are Ready
 
@@ -27,7 +27,7 @@ ls -lh /Users/dryjohn/Desktop/rogers-house/data/lancedb
 ```json
 {
   "mcpServers": {
-    "claudehopper": {
+    "constructosaurus": {
       "command": "node",
       "args": [
         "/Users/dryjohn/Desktop/rogers-house/dist/index.js"
@@ -59,7 +59,7 @@ ls -lh /Users/dryjohn/Desktop/rogers-house/data/lancedb
 1. **Look for the 🔌 icon** in the bottom-right corner of Claude Desktop
 
 2. **Click the 🔌 icon** - you should see:
-   - Server name: "claudehopper"
+   - Server name: "constructosaurus"
    - Status: Connected (green)
    - Tools: 4 available tools
 
@@ -120,13 +120,13 @@ open -a Ollama
 
 **Solution 2: Check server logs**
 - In Claude Desktop: Help → View Logs
-- Look for errors related to "claudehopper"
+- Look for errors related to "constructosaurus"
 
 **Solution 3: Test server manually**
 ```bash
 cd /Users/dryjohn/Desktop/rogers-house
 node dist/index.js
-# Should print: "ClaudeHopper MCP Server running on stdio"
+# Should print: "Constructosaurus MCP Server running on stdio"
 # Press Ctrl+C to stop
 ```
 
@@ -190,7 +190,7 @@ npm run process
 ## Success Indicators
 
 ✅ **You'll know it's working when:**
-1. 🔌 icon shows "claudehopper" connected
+1. 🔌 icon shows "constructosaurus" connected
 2. Claude responds with specific drawing numbers (like "S-101", "A-201")
 3. Results include project name "Sitka" or "216 Shotgun Alley"
 4. Text snippets from actual documents appear in responses

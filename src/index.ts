@@ -16,7 +16,7 @@ import * as path from "path";
 
 // No dotenv needed - env vars come from MCP config
 
-class ClaudeHopperServer {
+class ConstructosaurusServer {
   private server: Server;
   private embedService: EmbeddingService;
   private searchEngine: HybridSearchEngine;
@@ -29,7 +29,7 @@ class ClaudeHopperServer {
   constructor() {
     this.server = new Server(
       {
-        name: "claudehopper",
+        name: "constructosaurus",
         version: "2.0.0",
       },
       {
@@ -454,9 +454,9 @@ class ClaudeHopperServer {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
     
-    console.error("ClaudeHopper MCP Server running on stdio");
+    console.error("Constructosaurus MCP Server running on stdio");
   }
 }
 
-const server = new ClaudeHopperServer();
+const server = new ConstructosaurusServer();
 server.run().catch(console.error);

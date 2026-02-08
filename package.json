@@ -1,5 +1,5 @@
 {
-  "name": "claudehopper-refactored",
+  "name": "constructosaurus",
   "version": "2.0.0",
   "description": "Modern RAG system for construction documents with vision-language capabilities",
   "main": "dist/index.js",

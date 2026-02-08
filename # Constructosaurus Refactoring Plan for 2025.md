@@ -1,4 +1,4 @@
-# ClaudeHopper Refactoring Plan for 2025-2026
+# Constructosaurus Refactoring Plan for 2025-2026
 
 ## Executive Summary
 
@@ -497,7 +497,7 @@ class ConstructionRAGBenchmark {
 import { trace } from "@opentelemetry/api";
 
 async function tracedSearch(query: string) {
-    const span = trace.getTracer("claudehopper").startSpan("search");
+    const span = trace.getTracer("constructosaurus").startSpan("search");
 
     try {
         span.setAttribute("query", query);
@@ -736,8 +736,8 @@ pip install pdf2image pypdf pytesseract
 
 ```bash
 # Clone repository
-git clone https://github.com/Arborist-ai/ClaudeHopper.git
-cd ClaudeHopper
+git clone https://github.com/Arborist-ai/Constructosaurus.git
+cd Constructosaurus
 
 # Install dependencies
 npm install
@@ -1252,4 +1252,4 @@ ENABLE_CACHING=true
 
 ---
 
-This completes the comprehensive ClaudeHopper refactoring plan. The document provides a complete roadmap from current state to production-ready, modern RAG system optimized for construction document analysis.
+This completes the comprehensive Constructosaurus refactoring plan. The document provides a complete roadmap from current state to production-ready, modern RAG system optimized for construction document analysis.

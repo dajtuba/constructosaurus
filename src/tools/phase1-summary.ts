@@ -2,7 +2,7 @@
 
 console.log("╔═══════════════════════════════════════════════════════════════╗");
 console.log("║                                                               ║");
-console.log("║   ClaudeHopper 2.0 - Phase 1: Table Extraction Complete      ║");
+console.log("║   Constructosaurus 2.0 - Phase 1: Table Extraction Complete      ║");
 console.log("║                                                               ║");
 console.log("╚═══════════════════════════════════════════════════════════════╝");
 console.log("");
