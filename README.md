@@ -1,86 +1,97 @@
 # Constructosaurus
 
-Modern RAG system for construction documents with vision-language capabilities.
+AI-powered construction document processing system. Extract materials, quantities, and schedules from PDF construction documents using local AI (Ollama) and semantic search.
 
 ## Features
 
-- **Hybrid Search**: Vector + keyword search with reranking
-- **Vision AI**: CAD drawing analysis using Claude Vision
-- **Smart Processing**: Document classification and intelligent chunking
-- **Caching**: LRU cache for fast repeated queries
-- **MCP Integration**: Model Context Protocol server for Claude Desktop
+- 🦕 **Local AI Processing** - Uses Ollama (FREE) for vision analysis
+- 📄 **PDF Ingestion** - Process drawings, specs, and schedules
+- 🔍 **Semantic Search** - Find information across all documents
+- 📊 **Schedule Extraction** - Auto-extract door, window, beam schedules
+- 🏗️ **Material Takeoff** - Extract materials with quantities
+- 🔗 **Cross-Document Correlation** - Detect conflicts between documents
+- 💬 **Claude Desktop Integration** - Query via natural language
 
-## Setup
+## Quick Start
 
-1. Install dependencies:
+### 1. Run Setup
+
 ```bash
-npm install
+./setup.sh
 ```
 
-2. Configure environment:
+This installs dependencies, downloads AI models, and configures Claude Desktop.
+
+### 2. Add Your Documents
+
 ```bash
-cp .env.example .env
-# Edit .env with your API keys
+cp ~/your-project/*.pdf source/
 ```
 
-3. Build:
+### 3. Process Documents
+
 ```bash
-npm run build
+npm run process source data/lancedb
 ```
 
-4. Run:
-```bash
-npm start
-```
+This extracts all data using Ollama (runs locally, no API costs).
 
-## Usage
+### 4. Query in Claude Desktop
 
-### Search Documents
-```typescript
-{
-  "tool": "search_construction_docs",
-  "query": "foundation details with anchor bolts",
-  "discipline": "Structural",
-  "top_k": 10
-}
-```
+Restart Claude Desktop, then ask:
+- "Search for concrete specifications"
+- "Extract all rebar materials"
+- "Query the door schedule"
 
-### Ingest Document
-```typescript
-{
-  "tool": "ingest_document",
-  "pdfPath": "/path/to/drawing.pdf"
-}
-```
+## System Requirements
 
-### Analyze Drawing
-```typescript
-{
-  "tool": "analyze_drawing",
-  "imagePath": "/path/to/drawing.png",
-  "query": "What is the concrete strength?"
-}
-```
+- **Node.js** 18+
+- **Ollama** (auto-installed by setup script)
+- **Disk Space** ~10GB for AI models
+- **RAM** 8GB+ recommended
 
-## Architecture
+## Cost
+
+- **Processing**: $0 (uses local Ollama)
+- **Storage**: Local LanceDB (free)
+- **Querying**: Minimal (just embeddings)
+
+Compare to Claude Vision API: $0.80/image = $80 for 100 pages
+
+## Documentation
+
+- [Quick Start Guide](QUICKSTART.md) - Detailed setup instructions
+- [Testing Guide](TESTING.md) - How to test the system
+- [Architecture](docs/architecture/overview.md) - System design
+- [API Documentation](docs/api/README.md) - MCP tools reference
+
+## Project Structure
 
 ```
-PDF → Classification → Processing → Embedding → LanceDB
-                                                    ↓
-Query → Embedding → Vector Search → Reranking → Results
+constructosaurus/
+├── src/              # Source code
+│   ├── extraction/   # PDF extraction
+│   ├── services/     # Business logic
+│   ├── vision/       # Ollama vision analysis
+│   └── mcp/          # MCP server tools
+├── docs/             # Documentation
+├── source/           # Your PDF documents (add here)
+├── data/             # Processed data (LanceDB)
+└── setup.sh          # One-command setup
 ```
-
-## Configuration
-
-See `.env.example` for all configuration options.
 
 ## Development
 
 ```bash
-npm run dev      # Development mode
-npm run test     # Run tests
-npm run lint     # Lint code
+npm run build        # Build TypeScript
+npm run dev          # Development mode
+npm run test         # Run tests
 ```
+
+## Support
+
+- GitHub Issues: https://github.com/dajtuba/constructosaurus/issues
+- Documentation: `docs/`
 
 ## License
 

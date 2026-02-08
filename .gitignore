@@ -7,3 +7,16 @@ data/
 coverage/
 .vscode/
 .idea/
+
+# User documents
+source/
+docs/blueprints/
+
+# Development artifacts
+.beads/
+.kiro/
+.claude/
+design-docs/
+
+# Backups
+*.backup.*
