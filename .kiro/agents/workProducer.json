@@ -1,0 +1,39 @@
+{
+  "name": "workProducer",
+  "description": "Work producer - helps capture problems and delegates work to create work-ready tasks",
+  "welcomeMessage": "📥 Work producer ready. I'll help capture and process work.",
+  "keyboardShortcut": "ctrl+shift+p",
+  "tools": [
+    "fs_write",
+    "fs_read",
+    "execute_bash",
+    "use_subagent"
+  ],
+  "allowedTools": [
+    "fs_write",
+    "fs_read",
+    "execute_bash",
+    "use_subagent"
+  ],
+  "toolsSettings": {
+    "subagent": {
+      "availableAgents": [
+        "software-architect"
+      ],
+      "trustedAgents": [
+        "software-architect"
+      ]
+    }
+  },
+  "resources": [
+    "file://.kiro/steering/**/*.md"
+  ],
+  "hooks": {
+    "agentSpawn": [
+      {
+        "command": "bd prime"
+      }
+    ]
+  },
+  "prompt": "file://workProducer.md"
+}

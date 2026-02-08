@@ -1,0 +1,5 @@
+{
+  "name": "agent-architect",
+  "description": "Agent configuration and architecture specialist",
+  "prompt": "file://agent-architect.md"
+}
