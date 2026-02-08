@@ -1,0 +1,59 @@
+SAMPLE CONSTRUCTION DOCUMENT - RESIDENTIAL FOUNDATION
+
+PROJECT: Rogers House Addition
+DRAWING: S-101 Foundation Plan
+DATE: 2026-02-08
+
+GENERAL NOTES:
+1. Use 3/4" plywood throughout for formwork
+2. All concrete shall be 3000 PSI minimum
+3. Provide 24 expansion joints at locations shown
+4. Install (12) #4 rebar @ 12" o.c. in foundation walls
+
+FOUNDATION SPECIFICATIONS:
+
+Phase 1 - Excavation and Footings:
+- Excavate to 4'-0" depth
+- Compact subgrade with 6" crushed stone base
+- Install 2x8 PT lumber forms for footings
+- Place 15 cubic yards concrete for footings
+- Embed (8) anchor bolts @ 24" o.c.
+
+Phase 2 - Foundation Walls:
+- Construct 8" CMU foundation walls
+- Use Type S mortar throughout
+- Install 200 linear feet of 8" CMU blocks
+- Provide #4 rebar vertical @ 48" o.c.
+- Provide #4 rebar horizontal @ 16" o.c.
+- Apply waterproofing membrane to exterior
+
+Phase 3 - Slab on Grade:
+- Place 4" gravel base
+- Install 6 mil poly vapor barrier
+- Place 10x10 W1.4xW1.4 welded wire fabric
+- Pour 4" concrete slab, 3000 PSI
+- Estimated 12 cubic yards concrete for slab
+
+MATERIAL CALLOUTS:
+(1) Foundation drain: 4" perforated PVC pipe, 100 linear feet
+(2) Sill plate: 2x6 PT lumber, 80 linear feet
+(3) Anchor bolts: 1/2" x 10", galvanized, 16 each
+(4) Rebar: #4 grade 60, 500 linear feet total
+
+TEMPORARY MATERIALS:
+- Formwork: 3/4" plywood, 40 sheets
+- Form ties: 200 each
+- Scaffolding: As required by contractor
+
+FINISHES:
+- Exterior waterproofing: 200 SF
+- Interior dampproofing: 200 SF
+
+CONFLICTS WITH ARCHITECTURAL DRAWINGS:
+- A-101 shows slab thickness as 5" (use 4" per structural)
+- A-102 shows different anchor bolt spacing (use 24" o.c. per structural)
+
+ADDENDUM #1 (2026-02-07):
+- Change foundation wall height from 8'-0" to 9'-0"
+- Add 50 linear feet of 8" CMU blocks
+- Add 100 linear feet of #4 rebar
