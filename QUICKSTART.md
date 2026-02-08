@@ -50,7 +50,7 @@ This will:
 
 Expected output:
 ```
-🏗️  ClaudeHopper 2.0 Demo
+🏗️  Constructosaurus Demo
 
 ✅ Initializing services...
 ✅ Services initialized
@@ -93,7 +93,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "claudehopper": {
+    "constructosaurus": {
       "command": "node",
       "args": ["/Users/dryjohn/Desktop/rogers-house/dist/index.js"]
     }
@@ -103,7 +103,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ### 3. Restart Claude Desktop
 
-The ClaudeHopper tools will now be available in Claude Desktop.
+The Constructosaurus tools will now be available in Claude Desktop.
 
 ## Available Tools
 
@@ -213,9 +213,9 @@ npm run format
 ## Support
 
 For issues or questions:
-1. Check `IMPLEMENTATION.md` for architecture details
-2. Review the refactoring plan in `# ClaudeHopper Refactoring Plan for 2025.md`
-3. Check the code comments in `src/` directory
+1. Check documentation in `docs/` directory
+2. Review architecture in `docs/architecture/overview.md`
+3. See code examples in `docs/examples/README.md`
 
 ## Performance Tips
 

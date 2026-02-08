@@ -1,4 +1,4 @@
-# ClaudeHopper 2.0
+# Constructosaurus
 
 Modern RAG system for construction documents with vision-language capabilities.
 
