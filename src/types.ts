@@ -58,6 +58,14 @@ export interface ScheduleEntry {
   mark: string;
   data: Record<string, any>;
   rowNumber: number;
+  // Context fields
+  phase?: string;
+  building?: string;
+  floor?: string;
+  room?: string;
+  gridRef?: string;
+  conditionals?: string;
+  sequencing?: string;
 }
 
 export interface StructuralMember {
@@ -114,3 +122,42 @@ export const CONSTRUCTION_TAXONOMY = {
   components: ["Foundation", "Footing", "Column", "Beam", "Slab", "Wall", "Roof", "Connection"],
   materials: ["Concrete", "Steel", "Wood", "Masonry"],
 };
+
+// Phase and Location Context Types
+
+export enum Phase {
+  FOUNDATION = "foundation",
+  FRAMING = "framing",
+  MEP = "mep",
+  FINISHES = "finishes",
+  SITEWORK = "sitework"
+}
+
+export interface Location {
+  building?: string;
+  floor?: string;
+  room?: string;
+  gridRef?: string;
+  zone?: string;
+}
+
+export interface ConditionalRule {
+  condition: string;
+  applies: boolean;
+}
+
+export interface MaterialContext {
+  phase?: Phase;
+  location?: Location;
+  conditionals?: ConditionalRule[];
+  sequencing?: string;
+}
+
+export interface ContextualMaterial {
+  name: string;
+  quantity?: number;
+  unit?: string;
+  specification?: string;
+  context?: MaterialContext;
+  source: string;
+}

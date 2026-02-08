@@ -1,3 +1,6 @@
+import { ContextExtractionService } from '../services/context-extraction-service';
+import { MaterialContext } from '../types';
+
 export interface MaterialItem {
   name: string;
   quantity?: number;
@@ -6,6 +9,7 @@ export interface MaterialItem {
   location?: string;
   drawingRef?: string;
   category?: string;
+  context?: MaterialContext;
 }
 
 export interface SupplyListItem {
@@ -46,16 +50,30 @@ Return ONLY the JSON array, no explanation.`;
   }
 
   /**
-   * Parse materials from LLM response
+   * Parse materials from LLM response and extract context
    */
-  parseMaterialsResponse(response: string): MaterialItem[] {
+  parseMaterialsResponse(response: string, sourceText?: string): MaterialItem[] {
     try {
       // Extract JSON from response (handle markdown code blocks)
       const jsonMatch = response.match(/\[[\s\S]*\]/);
       if (!jsonMatch) {
         return [];
       }
-      return JSON.parse(jsonMatch[0]);
+      const materials = JSON.parse(jsonMatch[0]);
+      
+      // Extract context if source text provided
+      if (sourceText) {
+        const contextService = new ContextExtractionService();
+        const context = contextService.extractContext(sourceText);
+        
+        // Add context to each material
+        return materials.map((m: MaterialItem) => ({
+          ...m,
+          context
+        }));
+      }
+      
+      return materials;
     } catch (error) {
       console.error("Failed to parse materials response:", error);
       return [];
