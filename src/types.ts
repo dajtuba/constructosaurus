@@ -185,3 +185,32 @@ export interface ValidationResult {
   errors: string[];
   confidence?: number;
 }
+
+// Derived Material Types
+
+export interface Fastener {
+  type: string;
+  size: string;
+  quantity: number;
+  connectionType?: string;
+}
+
+export interface Adhesive {
+  type: string;
+  coverage: number;
+  linearFeet: number;
+  tubes: number;
+}
+
+export interface Finish {
+  type: string;
+  coverage: number;
+  surfaceArea: number;
+  gallons: number;
+}
+
+export interface TemporaryMaterial {
+  type: string;
+  quantity: number;
+  duration?: string;
+}
