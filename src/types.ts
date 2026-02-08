@@ -290,3 +290,27 @@ export interface Conflict {
   resolution?: string;
   priority: number;
 }
+
+// Text Extraction Types
+
+export interface TextQuantity {
+  material: string;
+  quantity: number;
+  unit: string;
+  context: string;
+  confidence: number;
+  source: string;
+}
+
+export interface CalloutAnnotation {
+  text: string;
+  location?: string;
+  pageNumber: number;
+  extractedQuantity?: TextQuantity;
+}
+
+export interface QuantityPattern {
+  regex: RegExp;
+  parser: (match: RegExpMatchArray) => TextQuantity | null;
+  materialType: string;
+}
