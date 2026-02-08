@@ -2,21 +2,108 @@
 
 ## System Architecture
 
-Constructosaurus is an **MCP (Model Context Protocol) server** that:
-1. Runs as a background service
-2. Connects to Claude Desktop via MCP
-3. Provides tools for ingesting and querying construction documents
-4. Stores processed data in LanceDB for semantic search
+Constructosaurus processes PDFs **locally using Ollama** (free, no API costs):
 
-## How to Test with Your Sitka PDFs
+1. **Offline Processing**: `npm run process` - Uses Ollama LLaVA for vision analysis
+2. **Storage**: Processed data stored in LanceDB with embeddings
+3. **MCP Server**: Provides search/query tools to Claude Desktop
+4. **Query**: Claude Desktop queries the pre-processed data (no re-processing)
 
-### Step 1: Start the MCP Server
+**Key Point**: PDFs are processed ONCE with Ollama, then queried many times via MCP (cheap).
 
-The server should already be configured in your Claude Desktop MCP settings.
+## Prerequisites
 
-Check: `~/.config/Claude/claude_desktop_config.json`
+1. **Ollama installed and running**:
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
 
-Should contain:
+# Pull the vision model
+ollama pull llava:13b
+
+# Pull the embedding model
+ollama pull mxbai-embed-large
+
+# Verify Ollama is running
+curl http://localhost:11434/api/tags
+```
+
+2. **Build the project**:
+```bash
+npm install
+npm run build
+```
+
+## Step 1: Process Your Sitka PDFs with Ollama
+
+This runs **locally** using Ollama (no API costs):
+
+```bash
+# Process all PDFs in docs/blueprints/
+npm run process docs/blueprints data/lancedb
+```
+
+This will:
+- ✅ Convert PDFs to images
+- ✅ Analyze with Ollama LLaVA (vision model - FREE)
+- ✅ Extract schedules, dimensions, materials
+- ✅ Generate embeddings with Ollama (FREE)
+- ✅ Store in LanceDB at `data/lancedb/`
+
+**Expected output:**
+```
+📚 Constructosaurus 2.0 - Document Processing
+
+📁 Source directory: docs/blueprints
+💾 Database path: data/lancedb
+📋 Schedule store: data/schedules
+👁️  Vision analysis: ENABLED (Ollama LLaVA - FREE)
+
+Found 4 PDF(s) to process:
+
+  1. Sitka CD Shell Set Memo .pdf
+  2. Sitka Construction Shell Set.pdf
+  3. Sitka Shell Set - Outline Specifications.pdf
+  4. Sitka Structural Calculations -- Permit Set (09-19-2025).pdf
+
+[1/4] Processing: Sitka CD Shell Set Memo .pdf
+======================================================================
+✅ Processed: 2 sheets, 0 schedules
+
+[2/4] Processing: Sitka Construction Shell Set.pdf
+======================================================================
+✅ Processed: 45 sheets, 12 schedules
+
+... etc ...
+
+💾 Storing in database...
+✅ Stored 150 sheets in database
+
+📊 Summary:
+  Total sheets: 150
+  Total schedules: 25
+  Processing time: 15m 30s
+```
+
+## Step 2: Inspect What Was Extracted
+
+```bash
+npm run inspect data/lancedb
+```
+
+Shows what's in the database:
+- Document count
+- Schedule types found
+- Sample entries
+
+## Step 3: Query via MCP (Optional)
+
+If you want to query via Claude Desktop:
+
+### Configure MCP Server
+
+Edit `~/.config/Claude/claude_desktop_config.json`:
+
 ```json
 {
   "mcpServers": {
@@ -24,132 +111,93 @@ Should contain:
       "command": "node",
       "args": ["/Users/dryjohn/Desktop/rogers-house/dist/index.js"],
       "env": {
-        "ANTHROPIC_API_KEY": "your-key",
-        "DATABASE_PATH": "/Users/dryjohn/Desktop/rogers-house/data/lancedb"
+        "DATABASE_PATH": "/Users/dryjohn/Desktop/rogers-house/data/lancedb",
+        "OLLAMA_URL": "http://localhost:11434",
+        "EMBED_MODEL": "mxbai-embed-large"
       }
     }
   }
 }
 ```
 
-### Step 2: Ingest PDFs via Claude Desktop
+### Restart Claude Desktop
 
-In Claude Desktop, use the MCP tool to ingest each PDF:
+Now you can query in Claude Desktop:
+- "Search for all concrete specifications"
+- "Find rebar callouts in foundation drawings"
+- "Show me the door schedule"
 
-**Ingest Construction Shell Set:**
-```
-Use the ingest_document tool with:
-pdfPath: /Users/dryjohn/Desktop/rogers-house/docs/blueprints/Sitka Construction Shell Set.pdf
-```
+**Note**: Queries use embeddings (cheap), not re-processing PDFs.
 
-**Ingest Specifications:**
-```
-Use the ingest_document tool with:
-pdfPath: /Users/dryjohn/Desktop/rogers-house/docs/blueprints/Sitka Shell Set - Outline Specifications.pdf
-```
+## Step 4: Test Locally (Without MCP)
 
-**Ingest Structural Calculations:**
-```
-Use the ingest_document tool with:
-pdfPath: /Users/dryjohn/Desktop/rogers-house/docs/blueprints/Sitka Structural Calculations -- Permit Set (09-19-2025).pdf
+You can also test search locally:
+
+```bash
+# Run demo with your processed data
+npm run demo
 ```
 
-**Ingest Memo:**
-```
-Use the ingest_document tool with:
-pdfPath: /Users/dryjohn/Desktop/rogers-house/docs/blueprints/Sitka CD Shell Set Memo .pdf
-```
+Or create a custom test script to query specific materials.
 
-### Step 3: Query the Ingested Data
+## What Gets Extracted (via Ollama Vision)
 
-Once ingested, you can query via Claude Desktop:
+From your Sitka PDFs:
 
-**Example Queries:**
+- **Schedules**: Door, window, beam, column schedules (tables)
+- **Dimensions**: All dimension strings (24'-6", 3'-0", etc.)
+- **Item Counts**: Repeated symbols (doors, windows, etc.)
+- **Materials**: Text-based material specifications
+- **Callouts**: Annotations and notes
+- **Structural Data**: Rebar, concrete, steel specifications
 
-"Search for all concrete specifications"
-```
-Use search_construction_docs tool with:
-query: concrete specifications
-discipline: Structural
-```
+## Cost Comparison
 
-"Find all rebar callouts"
-```
-Use search_construction_docs tool with:
-query: rebar #4 #5 reinforcement
-discipline: Structural
-```
+**Old Way (Claude Vision API)**:
+- $0.80 per image (1600x1200)
+- 100 pages = $80
+- Every re-process = $80
 
-"Extract materials from foundation drawings"
-```
-Use extract_materials tool with:
-query: foundation materials
-```
-
-"Get door schedule"
-```
-Use query_schedule tool with:
-scheduleType: door
-```
-
-### Step 4: Verify Extraction
-
-The system will:
-1. ✅ Process PDFs through vision pipeline
-2. ✅ Extract text, tables, and annotations
-3. ✅ Store in LanceDB with embeddings
-4. ✅ Enable semantic search across all documents
-5. ✅ Track context (phase, location, conditionals)
-6. ✅ Detect cross-document conflicts
-7. ✅ Calculate derived materials
-
-## What Gets Extracted
-
-From your Sitka PDFs, the system will extract:
-
-- **Structural materials**: Concrete, rebar, steel beams, columns
-- **Framing materials**: Lumber dimensions and quantities
-- **Finishes**: Plywood, drywall, paint, tile
-- **MEP**: Pipes, conduit, fixtures
-- **Schedules**: Door, window, beam, column schedules
-- **Annotations**: Callouts, notes, dimensions
-- **Specifications**: Material specs from outline specs
-
-## Testing the Pipeline
-
-To verify everything works:
-
-1. **Ingest one PDF first** (start with the memo - smallest file)
-2. **Query for something specific** you know is in that document
-3. **Verify results** - should return relevant chunks with context
-4. **Ingest remaining PDFs**
-5. **Test cross-document queries** - search across all documents
-6. **Test conflict detection** - query same material from different docs
+**New Way (Ollama LLaVA)**:
+- $0 (runs locally)
+- Process once, query forever
+- No API costs
 
 ## Troubleshooting
 
-**If ingestion fails:**
-- Check MCP server is running: Look for Constructosaurus in Claude Desktop MCP status
-- Check file paths are absolute
-- Check ANTHROPIC_API_KEY is set
-- Check logs in Claude Desktop developer console
+**Ollama not running:**
+```bash
+# Start Ollama
+ollama serve
 
-**If search returns no results:**
-- Verify documents were ingested successfully
-- Check LanceDB path exists: `data/lancedb/`
-- Try broader search queries first
-- Check embeddings are being generated
+# In another terminal, verify
+curl http://localhost:11434/api/tags
+```
 
-**If extraction is incomplete:**
-- PDFs may need OCR if they're scanned images
-- Complex CAD drawings may need vision processing
-- Tables may need manual verification
+**Model not found:**
+```bash
+ollama pull llava:13b
+ollama pull mxbai-embed-large
+```
 
-## Next Steps After Testing
+**Processing fails:**
+- Check PDFs are readable (not encrypted)
+- Check disk space for image conversion
+- Check Ollama has enough RAM (8GB+ recommended for llava:13b)
 
-Once ingestion works:
-1. Query for specific materials you need
-2. Generate supply lists
-3. Detect quantity conflicts between documents
-4. Calculate derived materials (fasteners, adhesives)
-5. Export to cost estimates
+**No results in search:**
+- Verify processing completed successfully
+- Check `data/lancedb/` directory exists and has data
+- Try broader search queries
+
+## Next Steps After Processing
+
+Once PDFs are processed:
+
+1. **Query for materials**: Search for specific materials you need
+2. **Extract quantities**: Get material quantities from schedules
+3. **Detect conflicts**: Find mismatches between documents
+4. **Generate supply lists**: Aggregate materials across all documents
+5. **Calculate derived materials**: Fasteners, adhesives, finishes
+
+All of this uses the pre-processed data - no re-processing needed!
