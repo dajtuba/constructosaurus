@@ -161,3 +161,27 @@ export interface ContextualMaterial {
   context?: MaterialContext;
   source: string;
 }
+
+// Validation Types
+
+export enum ValidationStatus {
+  VALID = "valid",
+  WARNING = "warning",
+  ERROR = "error"
+}
+
+export interface ValidationRule {
+  type: string;
+  min?: number;
+  max?: number;
+  ratio?: { material: string; min: number; max: number };
+  message: string;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  status: ValidationStatus;
+  warnings: string[];
+  errors: string[];
+  confidence?: number;
+}
