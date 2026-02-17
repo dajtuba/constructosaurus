@@ -6,6 +6,7 @@ import { DimensionExtractor } from "../extraction/dimension-extractor";
 import { CrossReferenceDetector } from "../extraction/cross-reference-detector";
 import { QueryIntentDetector } from "./query-intent-detector";
 import { TakeoffSynthesizer, MaterialTakeoff } from "../services/takeoff-synthesizer";
+import { ResultDeduplicator } from "./result-deduplicator";
 
 export class HybridSearchEngine {
   private db!: Connection;
@@ -16,6 +17,7 @@ export class HybridSearchEngine {
   private crossRefDetector: CrossReferenceDetector;
   private intentDetector: QueryIntentDetector;
   private takeoffSynthesizer: TakeoffSynthesizer;
+  private deduplicator: ResultDeduplicator;
 
   constructor(
     private dbPath: string,
@@ -28,6 +30,7 @@ export class HybridSearchEngine {
     this.crossRefDetector = new CrossReferenceDetector();
     this.intentDetector = new QueryIntentDetector();
     this.takeoffSynthesizer = new TakeoffSynthesizer();
+    this.deduplicator = new ResultDeduplicator();
   }
 
   async initialize() {
@@ -112,9 +115,12 @@ export class HybridSearchEngine {
       crossReferences: this.crossRefDetector.detect(r.text)
     }));
     
+    // Deduplicate and filter by confidence
+    const deduplicated = this.deduplicator.deduplicate(results);
+    
     // Auto-resolve cross-references (only on first level to prevent loops)
     if (resolveRefs) {
-      for (const result of results) {
+      for (const result of deduplicated) {
         if (result.crossReferences && result.crossReferences.length > 0) {
           for (const ref of result.crossReferences.slice(0, 2)) {
             try {
@@ -133,7 +139,7 @@ export class HybridSearchEngine {
       }
     }
     
-    return results;
+    return deduplicated;
   }
 
   async createTable(data: any[]) {
