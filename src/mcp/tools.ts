@@ -44,8 +44,30 @@ export const MCP_TOOLS: MCPTool[] = [
           type: "boolean",
           description: "Return synthesized material takeoff instead of raw chunks (default: false)",
         },
+        summary: {
+          type: "boolean",
+          description: "Return summary only (drawing numbers + scores, no text) for quick overview (default: false)",
+        },
       },
       required: ["query"],
+    },
+  },
+  {
+    name: "get_result_details",
+    description: "Get full details for a specific search result by drawing number. Use after summary search to drill down.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        drawingNumber: {
+          type: "string",
+          description: "Drawing number to get details for (e.g., 'A101', 'S2.1')",
+        },
+        query: {
+          type: "string",
+          description: "Original search query for context",
+        },
+      },
+      required: ["drawingNumber", "query"],
     },
   },
   {
@@ -174,6 +196,16 @@ export class MCPToolHandlers {
       top_k: params.top_k || 3,
     });
 
+    // Summary mode - just drawing numbers and scores
+    if (params.summary) {
+      let output = `Found ${results.length} results for "${params.query}":\n\n`;
+      results.forEach((r, i) => {
+        output += `${i + 1}. ${r.drawingNumber} (${r.drawingType}) - Score: ${r.score.toFixed(1)}\n`;
+      });
+      output += `\nUse get_result_details with a drawing number to see full content.`;
+      return output;
+    }
+
     // Synthesized takeoff mode
     if (params.synthesize) {
       const takeoff = this.searchEngine.synthesizeTakeoff(results);
@@ -238,6 +270,50 @@ export class MCPToolHandlers {
       output += `   Score: ${r.score.toFixed(3)}\n\n`;
     }
 
+    return output;
+  }
+
+  async getResultDetails(params: any): Promise<string> {
+    const results = await this.searchEngine.search({
+      query: params.query,
+      top_k: 20,
+    });
+    
+    const match = results.find(r => r.drawingNumber === params.drawingNumber);
+    
+    if (!match) {
+      return `Drawing ${params.drawingNumber} not found in search results.`;
+    }
+    
+    let output = `# ${match.drawingNumber} (${match.discipline} - ${match.drawingType})\n\n`;
+    output += `**Full Content:**\n${match.text}\n\n`;
+    
+    if (match.dimensions && match.dimensions.length > 0) {
+      output += `**Dimensions:**\n`;
+      match.dimensions.forEach(d => {
+        output += `- ${d.original} = ${d.feet}'-${d.inches}"\n`;
+      });
+      output += '\n';
+    }
+    
+    if (match.calculatedAreas && match.calculatedAreas.length > 0) {
+      output += `**Calculated Areas:**\n`;
+      match.calculatedAreas.forEach(a => {
+        output += `- ${a.length.original} × ${a.width.original} = ${a.squareFeet.toFixed(1)} sq ft\n`;
+      });
+      output += '\n';
+    }
+    
+    if (match.crossReferences && match.crossReferences.length > 0) {
+      output += `**Cross-References:**\n`;
+      match.crossReferences.forEach(ref => {
+        output += `- ${ref.reference} (${ref.type})\n`;
+        if (ref.resolvedContent) {
+          output += `  → ${ref.resolvedContent.text.substring(0, 200)}...\n`;
+        }
+      });
+    }
+    
     return output;
   }
 
