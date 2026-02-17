@@ -44,8 +44,8 @@ export class SheetProcessor {
         metadata: {
           source: pdfPath,
           project: classification.project,
-          discipline: classification.discipline,
-          drawingNumber: classification.drawingNumbers[0] || `Page-${i + 1}`,
+          discipline: this.inferDiscipline(pageText),
+          drawingNumber: this.extractDrawingNumber(pageText) || `Page-${i + 1}`,
           drawingType: this.inferDrawingType(pageText),
         },
       });
@@ -82,6 +82,38 @@ export class SheetProcessor {
     if (lower.includes("detail")) return "Detail";
     if (lower.includes("schedule")) return "Schedule";
     return "General";
+  }
+
+  private inferDiscipline(text: string): string {
+    const upper = text.toUpperCase();
+    
+    // Check for drawing number prefixes (most reliable)
+    if (/\bS\d+\.\d+\b/.test(upper) || /STRUCTURAL|FOUNDATION PLAN|FRAMING PLAN|BEAM|FOOTING/.test(upper)) {
+      return "Structural";
+    }
+    if (/\bA\d+\.\d+\b/.test(upper) || /ARCHITECTURAL|FLOOR PLAN|ELEVATION|SITE PLAN/.test(upper)) {
+      return "Architectural";
+    }
+    if (/\bM\d+\.\d+\b/.test(upper) || /MECHANICAL|HVAC/.test(upper)) {
+      return "Mechanical";
+    }
+    if (/\bE\d+\.\d+\b/.test(upper) || /ELECTRICAL|LIGHTING/.test(upper)) {
+      return "Electrical";
+    }
+    if (/\bP\d+\.\d+\b/.test(upper) || /PLUMBING/.test(upper)) {
+      return "Plumbing";
+    }
+    if (/\bC\d+\.\d+\b/.test(upper) || /CIVIL|SITE/.test(upper)) {
+      return "Civil";
+    }
+    
+    return "General";
+  }
+
+  private extractDrawingNumber(text: string): string | null {
+    // Match common drawing number patterns: S2.0, A101, E202, etc.
+    const match = text.match(/\b([ASMEPC])(\d+)\.(\d+)\b/);
+    return match ? match[0] : null;
   }
 
   private detectSections(text: string): Array<{ sectionNumber: string; text: string }> {

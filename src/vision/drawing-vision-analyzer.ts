@@ -22,6 +22,8 @@ export interface VisionItemCount {
 
 export interface VisionAnalysisResult {
   schedules: VisionSchedule[];
+  beams?: Array<{mark: string; gridLocation?: string; count?: number}>;
+  columns?: Array<{mark: string; gridLocation?: string}>;
   dimensions: VisionDimension[];
   itemCounts: VisionItemCount[];
 }

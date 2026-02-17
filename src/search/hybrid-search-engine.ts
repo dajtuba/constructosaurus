@@ -2,12 +2,14 @@ import { connect, Connection, Table } from "vectordb";
 import { EmbeddingService } from "../embeddings/embedding-service";
 import { RerankingService } from "./reranking-service";
 import { SearchParams, SearchResult } from "../types";
+import { DimensionExtractor } from "../extraction/dimension-extractor";
 
 export class HybridSearchEngine {
   private db!: Connection;
   private table!: Table;
   private embedService: EmbeddingService;
   private rerankService?: RerankingService;
+  private dimensionExtractor: DimensionExtractor;
 
   constructor(
     private dbPath: string,
@@ -16,6 +18,7 @@ export class HybridSearchEngine {
   ) {
     this.embedService = embedService;
     this.rerankService = rerankService;
+    this.dimensionExtractor = new DimensionExtractor();
   }
 
   async initialize() {
@@ -78,6 +81,8 @@ export class HybridSearchEngine {
       drawingType: r.drawingType || "",
       drawingNumber: r.drawingNumber || "",
       score: r._distance,
+      dimensions: this.dimensionExtractor.extractDimensions(r.text),
+      calculatedAreas: this.dimensionExtractor.calculateAreas(r.text)
     }));
   }
 

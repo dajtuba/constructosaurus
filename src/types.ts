@@ -98,6 +98,21 @@ export interface Dimension {
   extractionMethod: string;
 }
 
+export interface ExtractedDimension {
+  feet: number;
+  inches: number;
+  totalInches: number;
+  original: string;
+  context?: string;
+}
+
+export interface AreaCalculation {
+  length: ExtractedDimension;
+  width: ExtractedDimension;
+  squareFeet: number;
+  context?: string;
+}
+
 export interface SearchParams {
   query: string;
   discipline?: string;
@@ -114,6 +129,8 @@ export interface SearchResult {
   drawingType: string;
   drawingNumber: string;
   score: number;
+  dimensions?: ExtractedDimension[];
+  calculatedAreas?: AreaCalculation[];
 }
 
 export const CONSTRUCTION_TAXONOMY = {

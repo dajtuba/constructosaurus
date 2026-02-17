@@ -23,6 +23,8 @@ export interface VisionItemCount {
 
 export interface VisionAnalysisResult {
   schedules: VisionSchedule[];
+  beams?: Array<{mark: string; gridLocation?: string; count?: number}>;
+  columns?: Array<{mark: string; gridLocation?: string}>;
   dimensions: VisionDimension[];
   itemCounts: VisionItemCount[];
 }
@@ -59,15 +61,18 @@ export class OllamaVisionAnalyzer {
     return `You are analyzing a construction drawing. Look carefully at the image.
 
 List everything you can see:
-- Tables or schedules with marks (like D101, W1, F1)
+- Beam callouts (W18x106, W10x100, W12x65, etc.) - these are steel beam sizes
+- Column callouts (W14x90, HSS8x8x1/2, etc.)
+- Tables or schedules with marks (like D101, W1, F1, B1)
 - Dimension strings (like 24'-6", 3'-0", 12")
-- Symbols that repeat (doors, windows, etc.)
+- Grid lines and labels (A, B, C, 1, 2, 3)
 
 Provide your answer as JSON:
 {
-  "schedules": [{"type": "door_schedule", "entries": [{"mark": "D101", "width": "3'-0\""}]}],
-  "dimensions": [{"location": "wall", "value": "24'-6\""}],
-  "itemCounts": [{"item": "door", "mark": "D101", "count": 2}]
+  "beams": [{"mark": "W18x106", "gridLocation": "between A-B/1-2", "count": 1}],
+  "columns": [{"mark": "W14x90", "gridLocation": "at A/1"}],
+  "schedules": [{"type": "beam_schedule", "entries": [{"mark": "B1", "size": "W18x106"}]}],
+  "dimensions": [{"location": "wall", "value": "24'-6\""}]
 }`;
   }
 
@@ -112,6 +117,8 @@ Provide your answer as JSON:
           entries: s.entries || [],
           pageNumber
         })),
+        beams: parsed.beams || [],
+        columns: parsed.columns || [],
         dimensions: parsed.dimensions || [],
         itemCounts: parsed.itemCounts || []
       };

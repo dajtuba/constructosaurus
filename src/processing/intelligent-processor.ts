@@ -264,6 +264,19 @@ export class IntelligentDocumentProcessor {
           });
         });
         parsedScheduleCount += entries.length;
+      } else if (this.detectBeamSchedule(table)) {
+        // Parse beam schedules (W-shapes, spans, etc.)
+        const beams = this.parseBeamSchedule(table);
+        beams.forEach((beam, idx) => {
+          this.scheduleStore.addEntry({
+            id: `${scheduleId}-beam-${idx}`,
+            scheduleId,
+            mark: beam.mark || `beam-${idx}`,
+            data: beam,
+            rowNumber: idx + 1
+          });
+        });
+        parsedScheduleCount += beams.length;
       }
       
       // Parse structural tables
@@ -299,14 +312,21 @@ export class IntelligentDocumentProcessor {
     let visionItemCountTotal = 0;
     
     if (this.enableVision && this.visionAnalyzer) {
-      console.log("  👁️  Running vision analysis on key pages...");
+      console.log("  👁️  Running vision analysis on structural sheets...");
       
-      // Analyze first 3 pages (typically have schedules)
-      const pagesToAnalyze = Math.min(3, classification.pageCount);
+      // Analyze structural sheets (plans + schedules)
+      const pagesToAnalyze = sheets
+        .filter(sheet => sheet.metadata.discipline === 'Structural')
+        .map(sheet => sheet.pageNumber);
+      
+      console.log(`  📄 Found ${pagesToAnalyze.length} pages with schedules: ${pagesToAnalyze.join(', ')}`);
+      const pagesToAnalyzeCount = pagesToAnalyze.length;
       const imageDir = path.join(path.dirname(pdfPath), '../data/vision-temp');
       
       try {
-        for (let pageNum = 1; pageNum <= pagesToAnalyze; pageNum++) {
+        for (let i = 0; i < pagesToAnalyzeCount; i++) {
+          const pageNum = pagesToAnalyze[i];
+          console.log(`    Analyzing page ${pageNum} (${i + 1}/${pagesToAnalyzeCount})...`);
           const imagePath = await this.imageConverter.convertPageToImage(
             pdfPath,
             pageNum,
@@ -314,6 +334,31 @@ export class IntelligentDocumentProcessor {
           );
           
           const visionResult = await this.visionAnalyzer.analyzeDrawingPage(imagePath, pageNum);
+          
+          // Store vision-extracted beams
+          if (visionResult.beams && visionResult.beams.length > 0) {
+            const beamScheduleId = this.generateId(pdfPath, pageNum, 'vision-beams');
+            this.scheduleStore.addSchedule({
+              id: beamScheduleId,
+              documentId,
+              scheduleType: 'beam_callouts',
+              pageNumber: pageNum,
+              extractionMethod: 'vision',
+              rowCount: visionResult.beams.length,
+              columnCount: 3
+            });
+            
+            visionResult.beams.forEach((beam, idx) => {
+              this.scheduleStore.addEntry({
+                id: `${beamScheduleId}-entry-${idx}`,
+                scheduleId: beamScheduleId,
+                mark: beam.mark,
+                data: beam,
+                rowNumber: idx + 1
+              });
+            });
+            visionScheduleCount += visionResult.beams.length;
+          }
           
           // Store vision-extracted schedules
           for (const schedule of visionResult.schedules) {
@@ -370,5 +415,35 @@ export class IntelligentDocumentProcessor {
     const base = `${source}-page${page}`;
     const str = suffix ? `${base}-${suffix}` : base;
     return crypto.createHash("md5").update(str).digest("hex");
+  }
+
+  private detectBeamSchedule(table: any): boolean {
+    const text = table.rows.flat().join(' ').toUpperCase();
+    return /W\d+X\d+|BEAM|SPAN|MEMBER/.test(text);
+  }
+
+  private parseBeamSchedule(table: any): any[] {
+    const beams: any[] = [];
+    const wShapeRegex = /W(\d+)X(\d+)/gi;
+    
+    for (const row of table.rows) {
+      const rowText = row.join(' ');
+      const matches = rowText.matchAll(wShapeRegex);
+      
+      for (const match of matches) {
+        const size = match[0];
+        const spanMatch = rowText.match(/(\d+[''][-\d]*)/);
+        
+        beams.push({
+          size,
+          depth: match[1],
+          weight: match[2],
+          span: spanMatch ? spanMatch[1] : null,
+          rawText: rowText
+        });
+      }
+    }
+    
+    return beams;
   }
 }
