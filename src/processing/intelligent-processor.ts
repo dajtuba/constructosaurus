@@ -358,6 +358,34 @@ export class IntelligentDocumentProcessor {
               });
             });
             visionScheduleCount += visionResult.beams.length;
+            
+            // Augment sheet text with beam callouts for search
+            const sheetIndex = sheets.findIndex(s => s.pageNumber === pageNum);
+            if (sheetIndex !== -1) {
+              const beamText = visionResult.beams
+                .map(b => `BEAM: ${b.mark}${b.gridLocation ? ` at ${b.gridLocation}` : ''}${b.count ? ` (QTY: ${b.count})` : ''}`)
+                .join('\n');
+              sheets[sheetIndex].text += `\n\nVISION-EXTRACTED STRUCTURAL MEMBERS:\n${beamText}`;
+              
+              // Re-embed with enriched text
+              const enrichedText = sheets[sheetIndex].text.substring(0, 2000);
+              sheets[sheetIndex].vector = await this.embedService.embedQuery(enrichedText);
+            }
+          }
+          
+          // Store vision-extracted columns
+          if (visionResult.columns && visionResult.columns.length > 0) {
+            const sheetIndex = sheets.findIndex(s => s.pageNumber === pageNum);
+            if (sheetIndex !== -1) {
+              const columnText = visionResult.columns
+                .map(c => `COLUMN: ${c.mark}${c.gridLocation ? ` at ${c.gridLocation}` : ''}`)
+                .join('\n');
+              sheets[sheetIndex].text += `\n${columnText}`;
+              
+              // Re-embed with enriched text
+              const enrichedText = sheets[sheetIndex].text.substring(0, 2000);
+              sheets[sheetIndex].vector = await this.embedService.embedQuery(enrichedText);
+            }
           }
           
           // Store vision-extracted schedules
