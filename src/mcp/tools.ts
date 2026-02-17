@@ -214,33 +214,18 @@ export class MCPToolHandlers {
         return "No materials found in search results.";
       }
       
-      let output = `# Material Takeoff for "${params.query}"\n\n`;
-      output += `Analyzed ${results.length} documents\n\n`;
+      // Structured JSON output
+      const structured = takeoff.map(item => ({
+        material: item.material,
+        specification: item.specification?.substring(0, 200) || null,
+        quantity: item.area || null,
+        unit: item.unit || null,
+        dimensions: item.dimensions?.slice(0, 3) || [],
+        installation: item.installation?.substring(0, 150) || null,
+        sources: item.sources.slice(0, 3)
+      }));
       
-      for (const item of takeoff) {
-        output += `## ${item.material}\n\n`;
-        
-        if (item.specification) {
-          output += `**Specification:** ${item.specification.substring(0, 200)}\n\n`;
-        }
-        
-        if (item.area) {
-          output += `**Area:** ${item.area.toFixed(1)} ${item.unit}\n\n`;
-        }
-        
-        if (item.dimensions && item.dimensions.length > 0) {
-          output += `**Dimensions:** ${item.dimensions.slice(0, 3).join(', ')}\n\n`;
-        }
-        
-        if (item.installation) {
-          output += `**Installation:** ${item.installation.substring(0, 150)}\n\n`;
-        }
-        
-        output += `**Sources:** ${item.sources.slice(0, 3).join(', ')}\n\n`;
-        output += "---\n\n";
-      }
-      
-      return output;
+      return JSON.stringify({ materials: structured }, null, 2);
     }
 
     // Standard search mode with enhancements
@@ -249,6 +234,12 @@ export class MCPToolHandlers {
     for (let i = 0; i < results.length; i++) {
       const r = results[i];
       output += `${i + 1}. ${r.drawingNumber} (${r.discipline} - ${r.drawingType})\n`;
+      
+      // Extract key numbers/specs without surrounding text
+      const keyInfo = this.extractKeyInfo(r.text);
+      if (keyInfo.length > 0) {
+        output += `   Key Info: ${keyInfo.join(' | ')}\n`;
+      }
       
       // Truncate text to 500 chars
       const text = r.text.length > 500 ? r.text.substring(0, 500) + "..." : r.text;
@@ -271,6 +262,24 @@ export class MCPToolHandlers {
     }
 
     return output;
+  }
+  
+  private extractKeyInfo(text: string): string[] {
+    const info: string[] = [];
+    
+    // Extract dimensions
+    const dims = text.match(/\d+'-\d+"/g);
+    if (dims) info.push(...dims.slice(0, 2));
+    
+    // Extract quantities
+    const qty = text.match(/QTY:\s*\d+|(\d+)\s*EA/gi);
+    if (qty) info.push(...qty.slice(0, 2));
+    
+    // Extract material specs
+    const specs = text.match(/\b(R-\d+|#\d+|PSI\s*\d+|\d+"\s*O\.?C\.?)\b/gi);
+    if (specs) info.push(...specs.slice(0, 2));
+    
+    return info;
   }
 
   async getResultDetails(params: any): Promise<string> {
