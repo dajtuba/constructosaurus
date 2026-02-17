@@ -38,7 +38,7 @@ export const MCP_TOOLS: MCPTool[] = [
         },
         top_k: {
           type: "number",
-          description: "Number of results to return (default: 3, max: 20)",
+          description: "Number of results to return (default: 2, max: 10)",
         },
         synthesize: {
           type: "boolean",
@@ -193,7 +193,7 @@ export class MCPToolHandlers {
       discipline: params.discipline,
       drawingType: params.drawingType,
       project: params.project,
-      top_k: params.top_k || 3,
+      top_k: params.top_k || 2,
     });
 
     // Summary mode - just drawing numbers and scores
@@ -241,21 +241,20 @@ export class MCPToolHandlers {
         output += `   Key Info: ${keyInfo.join(' | ')}\n`;
       }
       
-      // Truncate text to 500 chars
-      const text = r.text.length > 500 ? r.text.substring(0, 500) + "..." : r.text;
+      // Truncate text to 300 chars
+      const text = r.text.length > 300 ? r.text.substring(0, 300) + "..." : r.text;
       output += `   ${text}\n`;
       
       if (r.dimensions && r.dimensions.length > 0) {
-        output += `   📏 Dimensions: ${r.dimensions.slice(0, 3).map(d => d.original).join(', ')}\n`;
+        output += `   📏 ${r.dimensions.slice(0, 2).map(d => d.original).join(', ')}\n`;
       }
       
       if (r.calculatedAreas && r.calculatedAreas.length > 0) {
-        const area = r.calculatedAreas[0];
-        output += `   📐 Area: ${area.squareFeet.toFixed(1)} sq ft\n`;
+        output += `   📐 ${r.calculatedAreas[0].squareFeet.toFixed(0)} sq ft\n`;
       }
       
       if (r.crossReferences && r.crossReferences.length > 0) {
-        output += `   🔗 References: ${r.crossReferences.slice(0, 2).map(ref => ref.reference).join(', ')}\n`;
+        output += `   🔗 ${r.crossReferences[0].reference}\n`;
       }
       
       output += `   Score: ${r.score.toFixed(3)}\n\n`;
@@ -264,7 +263,7 @@ export class MCPToolHandlers {
     return this.truncateResponse(output);
   }
   
-  private truncateResponse(text: string, maxChars: number = 8000): string {
+  private truncateResponse(text: string, maxChars: number = 4000): string {
     if (text.length <= maxChars) return text;
     
     const truncated = text.substring(0, maxChars);
