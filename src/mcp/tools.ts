@@ -16,7 +16,7 @@ export interface MCPTool {
 export const MCP_TOOLS: MCPTool[] = [
   {
     name: "count_items",
-    description: "Count specific items in construction documents (beams, doors, windows, etc.) without returning full content. Returns just the count and item list.",
+    description: "FAST count for 'how many X' queries (beams, doors, windows, etc.). Goes directly to schedules without search. Use this FIRST for quantity questions before trying search_construction_docs.",
     inputSchema: {
       type: "object",
       properties: {
@@ -34,7 +34,7 @@ export const MCP_TOOLS: MCPTool[] = [
   },
   {
     name: "search_construction_docs",
-    description: "Search construction documents with semantic search, automatic dimension extraction, cross-reference resolution, and smart ranking. Returns relevant chunks with dimensions, areas, and resolved references.",
+    description: "Search construction documents for detailed content. DO NOT use for 'how many' questions - use count_items instead. Use this for specifications, details, dimensions, and general information.",
     inputSchema: {
       type: "object",
       properties: {
@@ -208,26 +208,37 @@ export class MCPToolHandlers {
   async countItems(params: any): Promise<string> {
     // TRACER BULLET: Go straight to schedules, skip search entirely
     if (!this.scheduleQueryService) {
-      return "Schedule data not available. Process documents with schedule extraction first.";
+      return "Schedule data not available. Run: npm run process source data/lancedb";
     }
     
     // Get all schedules
     const allSchedules = this.scheduleQueryService.querySchedules({});
     
-    if (!allSchedules.entries) {
-      return "No schedule entries found.";
+    if (!allSchedules.entries || allSchedules.entries.length === 0) {
+      return `No schedules found. The documents may not have been processed with schedule extraction enabled.`;
     }
     
     // Filter by item type
     const itemLower = params.item.toLowerCase();
     const matches = allSchedules.entries.filter((entry: any) => {
       const entryText = JSON.stringify(entry.data).toLowerCase();
-      return entryText.includes(itemLower) || 
-             entry.mark?.toLowerCase().includes(itemLower);
+      const markText = entry.mark?.toLowerCase() || '';
+      return entryText.includes(itemLower) || markText.includes(itemLower);
     });
     
     if (matches.length === 0) {
-      return `No ${params.item} found in schedules.`;
+      // Try broader search in schedule types
+      const stats: any = allSchedules.stats;
+      const scheduleTypes = stats?.byType || {};
+      const relevantTypes = Object.keys(scheduleTypes).filter(t => 
+        t.toLowerCase().includes(itemLower.split(' ')[0])
+      );
+      
+      if (relevantTypes.length > 0) {
+        return `No exact matches for "${params.item}". Found ${relevantTypes.length} related schedule type(s): ${relevantTypes.join(', ')}. Try searching for the schedule type directly.`;
+      }
+      
+      return `No ${params.item} found in schedules. Available schedule types: ${Object.keys(scheduleTypes).join(', ')}`;
     }
     
     // Extract just the marks
