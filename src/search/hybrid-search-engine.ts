@@ -4,6 +4,7 @@ import { RerankingService } from "./reranking-service";
 import { SearchParams, SearchResult } from "../types";
 import { DimensionExtractor } from "../extraction/dimension-extractor";
 import { CrossReferenceDetector } from "../extraction/cross-reference-detector";
+import { QueryIntentDetector } from "./query-intent-detector";
 
 export class HybridSearchEngine {
   private db!: Connection;
@@ -12,6 +13,7 @@ export class HybridSearchEngine {
   private rerankService?: RerankingService;
   private dimensionExtractor: DimensionExtractor;
   private crossRefDetector: CrossReferenceDetector;
+  private intentDetector: QueryIntentDetector;
 
   constructor(
     private dbPath: string,
@@ -22,6 +24,7 @@ export class HybridSearchEngine {
     this.rerankService = rerankService;
     this.dimensionExtractor = new DimensionExtractor();
     this.crossRefDetector = new CrossReferenceDetector();
+    this.intentDetector = new QueryIntentDetector();
   }
 
   async initialize() {
@@ -35,6 +38,10 @@ export class HybridSearchEngine {
 
   async search(params: SearchParams, resolveRefs: boolean = true): Promise<SearchResult[]> {
     const { query, discipline, drawingType, project, top_k = 10 } = params;
+
+    // Detect query intent
+    const intent = this.intentDetector.detect(query);
+    const boostFactors = this.intentDetector.getBoostFactors(intent);
 
     const queryEmbedding = await this.embedService.embedQuery(query);
 
@@ -76,7 +83,20 @@ export class HybridSearchEngine {
       });
     }
 
-    const results = vectorResults.slice(0, top_k).map((r: any) => ({
+    // Apply intent-based boosting
+    const boostedResults = vectorResults.map((r: any) => {
+      const drawingType = r.drawingType || 'general';
+      const boost = boostFactors[drawingType] || 1.0;
+      return {
+        ...r,
+        _distance: r._distance / boost // Lower distance = better score
+      };
+    });
+
+    // Sort by boosted score
+    boostedResults.sort((a: any, b: any) => a._distance - b._distance);
+
+    const results = boostedResults.slice(0, top_k).map((r: any) => ({
       id: r.id,
       text: r.text,
       project: r.project || "",
