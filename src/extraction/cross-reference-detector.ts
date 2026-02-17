@@ -12,14 +12,22 @@ export class CrossReferenceDetector {
 
   detect(text: string): CrossReference[] {
     const refs: CrossReference[] = [];
+    const seen = new Set<string>();
     
     for (const pattern of this.patterns) {
       const matches = text.matchAll(pattern.regex);
       
       for (const match of matches) {
         const reference = match[1] || match[0];
-        const start = Math.max(0, match.index! - 50);
-        const end = Math.min(text.length, match.index! + match[0].length + 50);
+        const refKey = `${pattern.type}:${reference.toUpperCase()}`;
+        
+        // Deduplicate - only keep first occurrence
+        if (seen.has(refKey)) continue;
+        seen.add(refKey);
+        
+        // Limit context to reduce bloat
+        const start = Math.max(0, match.index! - 30);
+        const end = Math.min(text.length, match.index! + match[0].length + 30);
         
         refs.push({
           type: pattern.type,
@@ -29,6 +37,7 @@ export class CrossReferenceDetector {
       }
     }
     
-    return refs;
+    // Limit to 5 most relevant cross-references
+    return refs.slice(0, 5);
   }
 }

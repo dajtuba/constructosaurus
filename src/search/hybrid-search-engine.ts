@@ -118,26 +118,8 @@ export class HybridSearchEngine {
     // Deduplicate and filter by confidence
     const deduplicated = this.deduplicator.deduplicate(results);
     
-    // Auto-resolve cross-references (only on first level to prevent loops)
-    if (resolveRefs) {
-      for (const result of deduplicated) {
-        if (result.crossReferences && result.crossReferences.length > 0) {
-          for (const ref of result.crossReferences.slice(0, 2)) {
-            try {
-              const resolved = await this.search({
-                query: ref.reference,
-                top_k: 1
-              }, false); // Don't resolve nested refs
-              if (resolved[0]) {
-                ref.resolvedContent = resolved[0];
-              }
-            } catch (e) {
-              // Skip failed resolutions
-            }
-          }
-        }
-      }
-    }
+    // Don't auto-resolve cross-references - causes massive context bloat
+    // Users can manually query specific references if needed
     
     return deduplicated;
   }

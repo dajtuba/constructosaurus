@@ -19,16 +19,22 @@ export class DimensionExtractor {
   
   extractDimensions(text: string): ExtractedDimension[] {
     const dimensions: ExtractedDimension[] = [];
+    const seen = new Set<number>();
     const matches = text.matchAll(this.dimensionPattern);
     
     for (const match of matches) {
       const feet = parseInt(match[1]);
       const inches = match[2] ? parseInt(match[2]) : 0;
+      const totalInches = feet * 12 + inches;
+      
+      // Deduplicate - only keep first occurrence of each unique dimension
+      if (seen.has(totalInches)) continue;
+      seen.add(totalInches);
       
       dimensions.push({
         feet,
         inches,
-        totalInches: feet * 12 + inches,
+        totalInches,
         original: match[0]
       });
     }
