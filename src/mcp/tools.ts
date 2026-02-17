@@ -203,7 +203,7 @@ export class MCPToolHandlers {
         output += `${i + 1}. ${r.drawingNumber} (${r.drawingType}) - Score: ${r.score.toFixed(1)}\n`;
       });
       output += `\nUse get_result_details with a drawing number to see full content.`;
-      return output;
+      return this.truncateResponse(output);
     }
 
     // Synthesized takeoff mode
@@ -225,7 +225,7 @@ export class MCPToolHandlers {
         sources: item.sources.slice(0, 3)
       }));
       
-      return JSON.stringify({ materials: structured }, null, 2);
+      return this.truncateResponse(JSON.stringify({ materials: structured }, null, 2));
     }
 
     // Standard search mode with enhancements
@@ -261,7 +261,17 @@ export class MCPToolHandlers {
       output += `   Score: ${r.score.toFixed(3)}\n\n`;
     }
 
-    return output;
+    return this.truncateResponse(output);
+  }
+  
+  private truncateResponse(text: string, maxChars: number = 8000): string {
+    if (text.length <= maxChars) return text;
+    
+    const truncated = text.substring(0, maxChars);
+    const lastNewline = truncated.lastIndexOf('\n');
+    
+    return truncated.substring(0, lastNewline > 0 ? lastNewline : maxChars) + 
+           `\n\n[Response truncated at ${maxChars} chars. Use summary=true or reduce top_k for smaller responses.]`;
   }
   
   private extractKeyInfo(text: string): string[] {
@@ -323,7 +333,7 @@ export class MCPToolHandlers {
       });
     }
     
-    return output;
+    return this.truncateResponse(output);
   }
 
   async extractMaterials(params: any): Promise<string> {
