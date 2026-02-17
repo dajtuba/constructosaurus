@@ -16,7 +16,7 @@ export interface MCPTool {
 export const MCP_TOOLS: MCPTool[] = [
   {
     name: "search_construction_docs",
-    description: "Search construction documents with semantic search and metadata filtering. Returns relevant document chunks with context.",
+    description: "Search construction documents with semantic search, automatic dimension extraction, cross-reference resolution, and smart ranking. Returns relevant chunks with dimensions, areas, and resolved references.",
     inputSchema: {
       type: "object",
       properties: {
@@ -39,6 +39,10 @@ export const MCP_TOOLS: MCPTool[] = [
         top_k: {
           type: "number",
           description: "Number of results to return (default: 10)",
+        },
+        synthesize: {
+          type: "boolean",
+          description: "Return synthesized material takeoff instead of raw chunks (default: false)",
         },
       },
       required: ["query"],
@@ -170,12 +174,64 @@ export class MCPToolHandlers {
       top_k: params.top_k || 10,
     });
 
+    // Synthesized takeoff mode
+    if (params.synthesize) {
+      const takeoff = this.searchEngine.synthesizeTakeoff(results);
+      
+      if (takeoff.length === 0) {
+        return "No materials found in search results.";
+      }
+      
+      let output = `# Material Takeoff for "${params.query}"\n\n`;
+      output += `Analyzed ${results.length} documents\n\n`;
+      
+      for (const item of takeoff) {
+        output += `## ${item.material}\n\n`;
+        
+        if (item.specification) {
+          output += `**Specification:** ${item.specification}\n\n`;
+        }
+        
+        if (item.area) {
+          output += `**Area:** ${item.area.toFixed(1)} ${item.unit}\n\n`;
+        }
+        
+        if (item.dimensions && item.dimensions.length > 0) {
+          output += `**Dimensions:** ${item.dimensions.join(', ')}\n\n`;
+        }
+        
+        if (item.installation) {
+          output += `**Installation:** ${item.installation}\n\n`;
+        }
+        
+        output += `**Sources:** ${item.sources.join(', ')}\n\n`;
+        output += "---\n\n";
+      }
+      
+      return output;
+    }
+
+    // Standard search mode with enhancements
     let output = `Found ${results.length} results for "${params.query}":\n\n`;
     
     for (let i = 0; i < results.length; i++) {
       const r = results[i];
       output += `${i + 1}. ${r.drawingNumber} (${r.discipline} - ${r.drawingType})\n`;
       output += `   ${r.text.substring(0, 200)}...\n`;
+      
+      if (r.dimensions && r.dimensions.length > 0) {
+        output += `   📏 Dimensions: ${r.dimensions.slice(0, 3).map(d => d.original).join(', ')}\n`;
+      }
+      
+      if (r.calculatedAreas && r.calculatedAreas.length > 0) {
+        const area = r.calculatedAreas[0];
+        output += `   📐 Area: ${area.squareFeet.toFixed(1)} sq ft\n`;
+      }
+      
+      if (r.crossReferences && r.crossReferences.length > 0) {
+        output += `   🔗 References: ${r.crossReferences.map(ref => ref.reference).join(', ')}\n`;
+      }
+      
       output += `   Score: ${r.score.toFixed(3)}\n\n`;
     }
 
