@@ -2,8 +2,8 @@ export type QueryIntent = 'quantity_takeoff' | 'specifications' | 'details' | 'd
 
 export class QueryIntentDetector {
   private intentPatterns = {
-    quantity_takeoff: /\b(materials?|quantities?|takeoff|how much|how many|supply|order|count)\b/i,
-    specifications: /\b(spec|specification|type|grade|model|manufacturer|product)\b/i,
+    quantity_takeoff: /\b(materials?|quantities?|takeoff|how much|how many|supply|order|count|beams?|columns?|footings?)\b/i,
+    specifications: /\b(spec|specification|type|grade|model|manufacturer|product|W\d+x\d+)\b/i,
     details: /\b(detail|connection|fastener|installation|method|how to)\b/i,
     dimensions: /\b(dimension|size|area|length|width|height|square feet|sq ft)\b/i
   };
@@ -15,6 +15,28 @@ export class QueryIntentDetector {
       }
     }
     return 'general';
+  }
+
+  expandQuery(query: string): string {
+    const lower = query.toLowerCase();
+    const expansions: string[] = [query];
+    
+    // Structural queries - add drawing numbers
+    if (/\b(beam|steel|column|framing)\b/i.test(query)) {
+      expansions.push('S2.1', 'S2.2', 'framing plan', 'structural plan');
+    }
+    
+    // Door/window queries
+    if (/\b(door|window)\b/i.test(query)) {
+      expansions.push('door schedule', 'window schedule', 'SCH-');
+    }
+    
+    // Material queries
+    if (/\b(material|finish|spec)\b/i.test(query)) {
+      expansions.push('specification', 'schedule');
+    }
+    
+    return expansions.join(' ');
   }
 
   getBoostFactors(intent: QueryIntent): Record<string, number> {

@@ -48,8 +48,11 @@ export class HybridSearchEngine {
     // Detect query intent
     const intent = this.intentDetector.detect(query);
     const boostFactors = this.intentDetector.getBoostFactors(intent);
+    
+    // Expand query for better structural search
+    const expandedQuery = this.intentDetector.expandQuery(query);
 
-    const queryEmbedding = await this.embedService.embedQuery(query);
+    const queryEmbedding = await this.embedService.embedQuery(expandedQuery);
 
     let vectorQuery = this.table.search(queryEmbedding).limit(top_k * 5);
 

@@ -16,7 +16,7 @@ export interface MCPTool {
 export const MCP_TOOLS: MCPTool[] = [
   {
     name: "count_items",
-    description: "⚡ REQUIRED for 'how many' questions. Returns counts instantly from schedules without searching. Examples: 'how many beams', 'count doors', 'list windows'. DO NOT use search_construction_docs for counting - it will blow up the context window.",
+    description: "⚡ REQUIRED for 'how many' questions. Returns counts instantly from schedules without searching. Examples: 'how many beams', 'count doors', 'list windows'. For steel beams, searches for W-shapes (W18x106, W10x100, etc.) in structural schedules. DO NOT use search_construction_docs for counting - it will blow up the context window.",
     inputSchema: {
       type: "object",
       properties: {
@@ -34,13 +34,13 @@ export const MCP_TOOLS: MCPTool[] = [
   },
   {
     name: "search_construction_docs",
-    description: "⚠️ NEVER use for 'how many' questions - use count_items instead. Use ONLY for: specifications, installation details, dimensions, materials. Returns document excerpts with metadata.",
+    description: "⚠️ NEVER use for 'how many' questions - use count_items instead. Use ONLY for: specifications, installation details, dimensions, materials. For structural queries, automatically searches framing plans (S2.1, S2.2). Returns document excerpts with metadata.",
     inputSchema: {
       type: "object",
       properties: {
         query: {
           type: "string",
-          description: "Search query (e.g., 'foundation details', 'steel connections')",
+          description: "Search query (e.g., 'foundation details', 'steel connections', 'beam specifications')",
         },
         discipline: {
           type: "string",
@@ -64,7 +64,7 @@ export const MCP_TOOLS: MCPTool[] = [
         },
         summary: {
           type: "boolean",
-          description: "Return summary only (drawing numbers + scores, no text) for quick overview (default: false)",
+          description: "Return summary only (drawing numbers + scores, no text) for quick overview. Use this first, then get_result_details for specific drawings (default: false)",
         },
       },
       required: ["query"],
@@ -72,17 +72,17 @@ export const MCP_TOOLS: MCPTool[] = [
   },
   {
     name: "get_result_details",
-    description: "Get full details for a specific search result by drawing number. Use after summary search to drill down.",
+    description: "Get full details for a specific drawing by number. Use after summary search to drill down into S2.1 (First Floor Framing), S2.2 (Roof Framing), or other specific drawings. This retrieves the complete content including beam schedules and quantities.",
     inputSchema: {
       type: "object",
       properties: {
         drawingNumber: {
           type: "string",
-          description: "Drawing number to get details for (e.g., 'A101', 'S2.1')",
+          description: "Drawing number to get details for (e.g., 'A101', 'S2.1', 'S2.2')",
         },
         query: {
           type: "string",
-          description: "Original search query for context",
+          description: "Original search query for context (e.g., 'steel beams')",
         },
       },
       required: ["drawingNumber", "query"],
