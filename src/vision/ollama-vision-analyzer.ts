@@ -33,7 +33,7 @@ export class OllamaVisionAnalyzer {
   private ollama: Ollama;
   private model: string;
 
-  constructor(ollamaUrl: string = "http://localhost:11434", model: string = "llava:13b") {
+  constructor(ollamaUrl: string = "http://localhost:11434", model: string = "glm-ocr") {
     this.ollama = new Ollama({ host: ollamaUrl });
     this.model = model;
   }
