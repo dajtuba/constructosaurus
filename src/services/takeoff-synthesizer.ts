@@ -80,24 +80,31 @@ export class TakeoffSynthesizer {
   
   private extractMaterials(text: string): string[] {
     const materials: string[] = [];
-    const patterns = [
-      /\b(warmboard[-\s]s)\b/gi,
-      /\b(plywood)\b/gi,
-      /\b(cedar)\b/gi,
-      /\b(concrete)\b/gi,
-      /\b(steel)\b/gi,
-      /\b(lumber)\b/gi,
-      /\b(sheathing)\b/gi,
-      /\b(decking)\b/gi,
-      /\b(framing)\b/gi
+    
+    // Common construction materials - expanded list
+    const materialKeywords = [
+      'warmboard', 'plywood', 'osb', 'cedar', 'concrete', 'steel', 'lumber',
+      'sheathing', 'decking', 'framing', 'drywall', 'gypsum', 'insulation',
+      'rebar', 'wire mesh', 'anchor', 'bolt', 'beam', 'joist', 'stud',
+      'siding', 'roofing', 'flashing', 'membrane', 'vapor barrier',
+      'tile', 'grout', 'mortar', 'adhesive', 'sealant', 'caulk',
+      'paint', 'primer', 'stain', 'finish', 'coating',
+      'door', 'window', 'glass', 'hardware', 'hinge', 'lock',
+      'pipe', 'conduit', 'wire', 'cable', 'duct', 'vent'
     ];
     
-    for (const pattern of patterns) {
-      const matches = text.matchAll(pattern);
-      for (const match of matches) {
-        const material = match[1];
-        if (!materials.includes(material)) {
-          materials.push(material);
+    const textLower = text.toLowerCase();
+    
+    for (const keyword of materialKeywords) {
+      if (textLower.includes(keyword)) {
+        // Extract the full material phrase (up to 3 words)
+        const pattern = new RegExp(`\\b([\\w-]+\\s+){0,2}${keyword}[\\w-]*`, 'gi');
+        const matches = text.matchAll(pattern);
+        for (const match of matches) {
+          const material = match[0].trim();
+          if (material.length > 2 && !materials.includes(material)) {
+            materials.push(material);
+          }
         }
       }
     }
