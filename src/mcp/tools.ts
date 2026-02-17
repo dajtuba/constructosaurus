@@ -38,7 +38,7 @@ export const MCP_TOOLS: MCPTool[] = [
         },
         top_k: {
           type: "number",
-          description: "Number of results to return (default: 10)",
+          description: "Number of results to return (default: 3, max: 20)",
         },
         synthesize: {
           type: "boolean",
@@ -171,7 +171,7 @@ export class MCPToolHandlers {
       discipline: params.discipline,
       drawingType: params.drawingType,
       project: params.project,
-      top_k: params.top_k || 10,
+      top_k: params.top_k || 3,
     });
 
     // Synthesized takeoff mode
@@ -189,7 +189,7 @@ export class MCPToolHandlers {
         output += `## ${item.material}\n\n`;
         
         if (item.specification) {
-          output += `**Specification:** ${item.specification}\n\n`;
+          output += `**Specification:** ${item.specification.substring(0, 200)}\n\n`;
         }
         
         if (item.area) {
@@ -197,14 +197,14 @@ export class MCPToolHandlers {
         }
         
         if (item.dimensions && item.dimensions.length > 0) {
-          output += `**Dimensions:** ${item.dimensions.join(', ')}\n\n`;
+          output += `**Dimensions:** ${item.dimensions.slice(0, 3).join(', ')}\n\n`;
         }
         
         if (item.installation) {
-          output += `**Installation:** ${item.installation}\n\n`;
+          output += `**Installation:** ${item.installation.substring(0, 150)}\n\n`;
         }
         
-        output += `**Sources:** ${item.sources.join(', ')}\n\n`;
+        output += `**Sources:** ${item.sources.slice(0, 3).join(', ')}\n\n`;
         output += "---\n\n";
       }
       
@@ -217,7 +217,10 @@ export class MCPToolHandlers {
     for (let i = 0; i < results.length; i++) {
       const r = results[i];
       output += `${i + 1}. ${r.drawingNumber} (${r.discipline} - ${r.drawingType})\n`;
-      output += `   ${r.text.substring(0, 200)}...\n`;
+      
+      // Truncate text to 500 chars
+      const text = r.text.length > 500 ? r.text.substring(0, 500) + "..." : r.text;
+      output += `   ${text}\n`;
       
       if (r.dimensions && r.dimensions.length > 0) {
         output += `   📏 Dimensions: ${r.dimensions.slice(0, 3).map(d => d.original).join(', ')}\n`;
@@ -229,7 +232,7 @@ export class MCPToolHandlers {
       }
       
       if (r.crossReferences && r.crossReferences.length > 0) {
-        output += `   🔗 References: ${r.crossReferences.map(ref => ref.reference).join(', ')}\n`;
+        output += `   🔗 References: ${r.crossReferences.slice(0, 2).map(ref => ref.reference).join(', ')}\n`;
       }
       
       output += `   Score: ${r.score.toFixed(3)}\n\n`;
