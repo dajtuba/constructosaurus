@@ -16,17 +16,17 @@ export interface MCPTool {
 export const MCP_TOOLS: MCPTool[] = [
   {
     name: "count_items",
-    description: "FAST count for 'how many X' queries (beams, doors, windows, etc.). Goes directly to schedules without search. Use this FIRST for quantity questions before trying search_construction_docs.",
+    description: "⚡ REQUIRED for 'how many' questions. Returns counts instantly from schedules without searching. Examples: 'how many beams', 'count doors', 'list windows'. DO NOT use search_construction_docs for counting - it will blow up the context window.",
     inputSchema: {
       type: "object",
       properties: {
         item: {
           type: "string",
-          description: "What to count (e.g., 'steel beams', 'doors', 'windows', 'footings')",
+          description: "What to count: 'steel beams', 'doors', 'windows', 'footings', etc.",
         },
         discipline: {
           type: "string",
-          description: "Filter by discipline: Structural, Architectural, etc.",
+          description: "Optional filter: Structural, Architectural, etc.",
         },
       },
       required: ["item"],
@@ -34,7 +34,7 @@ export const MCP_TOOLS: MCPTool[] = [
   },
   {
     name: "search_construction_docs",
-    description: "Search construction documents for detailed content. DO NOT use for 'how many' questions - use count_items instead. Use this for specifications, details, dimensions, and general information.",
+    description: "⚠️ NEVER use for 'how many' questions - use count_items instead. Use ONLY for: specifications, installation details, dimensions, materials. Returns document excerpts with metadata.",
     inputSchema: {
       type: "object",
       properties: {
