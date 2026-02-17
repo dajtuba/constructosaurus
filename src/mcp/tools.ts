@@ -15,6 +15,24 @@ export interface MCPTool {
 
 export const MCP_TOOLS: MCPTool[] = [
   {
+    name: "count_items",
+    description: "Count specific items in construction documents (beams, doors, windows, etc.) without returning full content. Returns just the count and item list.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        item: {
+          type: "string",
+          description: "What to count (e.g., 'steel beams', 'doors', 'windows', 'footings')",
+        },
+        discipline: {
+          type: "string",
+          description: "Filter by discipline: Structural, Architectural, etc.",
+        },
+      },
+      required: ["item"],
+    },
+  },
+  {
     name: "search_construction_docs",
     description: "Search construction documents with semantic search, automatic dimension extraction, cross-reference resolution, and smart ranking. Returns relevant chunks with dimensions, areas, and resolved references.",
     inputSchema: {
@@ -186,6 +204,74 @@ export class MCPToolHandlers {
     private scheduleQueryService?: ScheduleQueryService,
     private quantityCalculator?: QuantityCalculator
   ) {}
+
+  async countItems(params: any): Promise<string> {
+    // Search for the item
+    const results = await this.searchEngine.search({
+      query: params.item,
+      discipline: params.discipline,
+      top_k: 50, // Get more results for counting
+    });
+    
+    // Extract item mentions and marks
+    const items = new Set<string>();
+    const pattern = new RegExp(`\\b([A-Z]+[-]?\\d+)\\b`, 'g');
+    
+    for (const result of results) {
+      // Look for schedule marks or item IDs
+      const matches = result.text.matchAll(pattern);
+      for (const match of matches) {
+        items.add(match[1]);
+      }
+      
+      // Also check for quantity mentions
+      const qtyMatch = result.text.match(/QTY[:\s]*(\d+)|(\d+)\s*EA/i);
+      if (qtyMatch) {
+        const qty = qtyMatch[1] || qtyMatch[2];
+        items.add(`QTY:${qty}`);
+      }
+    }
+    
+    // Try to get from schedules if available
+    let scheduleCount = 0;
+    if (this.scheduleQueryService) {
+      try {
+        const scheduleResult = this.scheduleQueryService.querySchedules({});
+        if (scheduleResult.entries) {
+          scheduleCount = scheduleResult.entries.filter((e: any) => 
+            e.data && JSON.stringify(e.data).toLowerCase().includes(params.item.toLowerCase())
+          ).length;
+        }
+      } catch (e) {
+        // Schedules not available
+      }
+    }
+    
+    const uniqueItems = Array.from(items).filter(i => !i.startsWith('QTY:'));
+    const quantities = Array.from(items).filter(i => i.startsWith('QTY:'));
+    
+    let output = `# Count: ${params.item}\n\n`;
+    
+    if (scheduleCount > 0) {
+      output += `**Schedule Entries:** ${scheduleCount}\n\n`;
+    }
+    
+    if (uniqueItems.length > 0) {
+      output += `**Unique Items Found:** ${uniqueItems.length}\n`;
+      output += `${uniqueItems.slice(0, 20).join(', ')}\n\n`;
+    }
+    
+    if (quantities.length > 0) {
+      output += `**Quantities Mentioned:**\n`;
+      quantities.forEach(q => output += `- ${q}\n`);
+    }
+    
+    if (uniqueItems.length === 0 && scheduleCount === 0) {
+      output += `No specific items found. Try searching for the item type in schedules.`;
+    }
+    
+    return output;
+  }
 
   async searchConstructionDocs(params: any): Promise<string> {
     const results = await this.searchEngine.search({
