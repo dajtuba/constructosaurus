@@ -121,6 +121,13 @@ export interface SearchParams {
   top_k?: number;
 }
 
+export interface CrossReference {
+  type: 'sheet' | 'schedule' | 'detail' | 'material' | 'structural';
+  reference: string;
+  context: string;
+  resolvedContent?: SearchResult;
+}
+
 export interface SearchResult {
   id: string;
   text: string;
@@ -131,6 +138,7 @@ export interface SearchResult {
   score: number;
   dimensions?: ExtractedDimension[];
   calculatedAreas?: AreaCalculation[];
+  crossReferences?: CrossReference[];
 }
 
 export const CONSTRUCTION_TAXONOMY = {

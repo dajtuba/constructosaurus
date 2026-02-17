@@ -3,6 +3,7 @@ import { EmbeddingService } from "../embeddings/embedding-service";
 import { RerankingService } from "./reranking-service";
 import { SearchParams, SearchResult } from "../types";
 import { DimensionExtractor } from "../extraction/dimension-extractor";
+import { CrossReferenceDetector } from "../extraction/cross-reference-detector";
 
 export class HybridSearchEngine {
   private db!: Connection;
@@ -10,6 +11,7 @@ export class HybridSearchEngine {
   private embedService: EmbeddingService;
   private rerankService?: RerankingService;
   private dimensionExtractor: DimensionExtractor;
+  private crossRefDetector: CrossReferenceDetector;
 
   constructor(
     private dbPath: string,
@@ -19,6 +21,7 @@ export class HybridSearchEngine {
     this.embedService = embedService;
     this.rerankService = rerankService;
     this.dimensionExtractor = new DimensionExtractor();
+    this.crossRefDetector = new CrossReferenceDetector();
   }
 
   async initialize() {
@@ -30,7 +33,7 @@ export class HybridSearchEngine {
     }
   }
 
-  async search(params: SearchParams): Promise<SearchResult[]> {
+  async search(params: SearchParams, resolveRefs: boolean = true): Promise<SearchResult[]> {
     const { query, discipline, drawingType, project, top_k = 10 } = params;
 
     const queryEmbedding = await this.embedService.embedQuery(query);
@@ -73,7 +76,7 @@ export class HybridSearchEngine {
       });
     }
 
-    return vectorResults.slice(0, top_k).map((r: any) => ({
+    const results = vectorResults.slice(0, top_k).map((r: any) => ({
       id: r.id,
       text: r.text,
       project: r.project || "",
@@ -82,8 +85,32 @@ export class HybridSearchEngine {
       drawingNumber: r.drawingNumber || "",
       score: r._distance,
       dimensions: this.dimensionExtractor.extractDimensions(r.text),
-      calculatedAreas: this.dimensionExtractor.calculateAreas(r.text)
+      calculatedAreas: this.dimensionExtractor.calculateAreas(r.text),
+      crossReferences: this.crossRefDetector.detect(r.text)
     }));
+    
+    // Auto-resolve cross-references (only on first level to prevent loops)
+    if (resolveRefs) {
+      for (const result of results) {
+        if (result.crossReferences && result.crossReferences.length > 0) {
+          for (const ref of result.crossReferences.slice(0, 2)) {
+            try {
+              const resolved = await this.search({
+                query: ref.reference,
+                top_k: 1
+              }, false); // Don't resolve nested refs
+              if (resolved[0]) {
+                ref.resolvedContent = resolved[0];
+              }
+            } catch (e) {
+              // Skip failed resolutions
+            }
+          }
+        }
+      }
+    }
+    
+    return results;
   }
 
   async createTable(data: any[]) {
