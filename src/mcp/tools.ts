@@ -206,71 +206,34 @@ export class MCPToolHandlers {
   ) {}
 
   async countItems(params: any): Promise<string> {
-    // Search for the item
-    const results = await this.searchEngine.search({
-      query: params.item,
-      discipline: params.discipline,
-      top_k: 50, // Get more results for counting
+    // TRACER BULLET: Go straight to schedules, skip search entirely
+    if (!this.scheduleQueryService) {
+      return "Schedule data not available. Process documents with schedule extraction first.";
+    }
+    
+    // Get all schedules
+    const allSchedules = this.scheduleQueryService.querySchedules({});
+    
+    if (!allSchedules.entries) {
+      return "No schedule entries found.";
+    }
+    
+    // Filter by item type
+    const itemLower = params.item.toLowerCase();
+    const matches = allSchedules.entries.filter((entry: any) => {
+      const entryText = JSON.stringify(entry.data).toLowerCase();
+      return entryText.includes(itemLower) || 
+             entry.mark?.toLowerCase().includes(itemLower);
     });
     
-    // Extract item mentions and marks
-    const items = new Set<string>();
-    const pattern = new RegExp(`\\b([A-Z]+[-]?\\d+)\\b`, 'g');
-    
-    for (const result of results) {
-      // Look for schedule marks or item IDs
-      const matches = result.text.matchAll(pattern);
-      for (const match of matches) {
-        items.add(match[1]);
-      }
-      
-      // Also check for quantity mentions
-      const qtyMatch = result.text.match(/QTY[:\s]*(\d+)|(\d+)\s*EA/i);
-      if (qtyMatch) {
-        const qty = qtyMatch[1] || qtyMatch[2];
-        items.add(`QTY:${qty}`);
-      }
+    if (matches.length === 0) {
+      return `No ${params.item} found in schedules.`;
     }
     
-    // Try to get from schedules if available
-    let scheduleCount = 0;
-    if (this.scheduleQueryService) {
-      try {
-        const scheduleResult = this.scheduleQueryService.querySchedules({});
-        if (scheduleResult.entries) {
-          scheduleCount = scheduleResult.entries.filter((e: any) => 
-            e.data && JSON.stringify(e.data).toLowerCase().includes(params.item.toLowerCase())
-          ).length;
-        }
-      } catch (e) {
-        // Schedules not available
-      }
-    }
+    // Extract just the marks
+    const marks = matches.map((e: any) => e.mark).filter(Boolean);
     
-    const uniqueItems = Array.from(items).filter(i => !i.startsWith('QTY:'));
-    const quantities = Array.from(items).filter(i => i.startsWith('QTY:'));
-    
-    let output = `# Count: ${params.item}\n\n`;
-    
-    if (scheduleCount > 0) {
-      output += `**Schedule Entries:** ${scheduleCount}\n\n`;
-    }
-    
-    if (uniqueItems.length > 0) {
-      output += `**Unique Items Found:** ${uniqueItems.length}\n`;
-      output += `${uniqueItems.slice(0, 20).join(', ')}\n\n`;
-    }
-    
-    if (quantities.length > 0) {
-      output += `**Quantities Mentioned:**\n`;
-      quantities.forEach(q => output += `- ${q}\n`);
-    }
-    
-    if (uniqueItems.length === 0 && scheduleCount === 0) {
-      output += `No specific items found. Try searching for the item type in schedules.`;
-    }
-    
-    return output;
+    return `**Count:** ${marks.length} ${params.item}\n**Items:** ${marks.join(', ')}`;
   }
 
   async searchConstructionDocs(params: any): Promise<string> {
