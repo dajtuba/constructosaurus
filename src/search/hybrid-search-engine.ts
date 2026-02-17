@@ -5,6 +5,7 @@ import { SearchParams, SearchResult } from "../types";
 import { DimensionExtractor } from "../extraction/dimension-extractor";
 import { CrossReferenceDetector } from "../extraction/cross-reference-detector";
 import { QueryIntentDetector } from "./query-intent-detector";
+import { TakeoffSynthesizer, MaterialTakeoff } from "../services/takeoff-synthesizer";
 
 export class HybridSearchEngine {
   private db!: Connection;
@@ -14,6 +15,7 @@ export class HybridSearchEngine {
   private dimensionExtractor: DimensionExtractor;
   private crossRefDetector: CrossReferenceDetector;
   private intentDetector: QueryIntentDetector;
+  private takeoffSynthesizer: TakeoffSynthesizer;
 
   constructor(
     private dbPath: string,
@@ -25,6 +27,7 @@ export class HybridSearchEngine {
     this.dimensionExtractor = new DimensionExtractor();
     this.crossRefDetector = new CrossReferenceDetector();
     this.intentDetector = new QueryIntentDetector();
+    this.takeoffSynthesizer = new TakeoffSynthesizer();
   }
 
   async initialize() {
@@ -143,5 +146,9 @@ export class HybridSearchEngine {
     } else {
       await this.table.add(documents);
     }
+  }
+  
+  synthesizeTakeoff(results: SearchResult[]): MaterialTakeoff[] {
+    return this.takeoffSynthesizer.synthesize(results);
   }
 }
