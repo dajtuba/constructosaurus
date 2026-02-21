@@ -136,6 +136,11 @@ Return ONLY valid JSON:
         jsonText = jsonText.replace('"""', '"');
       }
       jsonText = jsonText.replace(/""\s*([}\]])/g, '"$1');
+      // Sanitize control characters inside string values
+      jsonText = jsonText.replace(/[\x00-\x1f\x7f]/g, (ch) => {
+        if (ch === '\n' || ch === '\r' || ch === '\t') return ' ';
+        return '';
+      });
       
       let parsed;
       try {
