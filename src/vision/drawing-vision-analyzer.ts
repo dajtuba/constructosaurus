@@ -22,8 +22,12 @@ export interface VisionItemCount {
 
 export interface VisionAnalysisResult {
   schedules: VisionSchedule[];
-  beams?: Array<{mark: string; gridLocation?: string; count?: number}>;
-  columns?: Array<{mark: string; gridLocation?: string}>;
+  beams?: Array<{mark: string; length?: string; gridLocation?: string; count?: number; elevation?: string}>;
+  columns?: Array<{mark: string; gridLocation?: string; height?: string; basePlate?: string}>;
+  joists?: Array<{mark: string; spacing?: string; span?: string; count?: number}>;
+  connections?: Array<{type: string; location?: string; detail?: string}>;
+  foundation?: Array<{type: string; size?: string; rebar?: string; count?: number}>;
+  symbols?: Array<{type: string; location?: string; detail?: string}>;
   dimensions: VisionDimension[];
   itemCounts: VisionItemCount[];
 }
@@ -37,7 +41,8 @@ export class DrawingVisionAnalyzer {
 
   async analyzeDrawingPage(
     imagePath: string,
-    pageNumber: number
+    pageNumber: number,
+    discipline?: string
   ): Promise<VisionAnalysisResult> {
     const imageData = fs.readFileSync(imagePath);
     const base64Image = imageData.toString('base64');

@@ -118,6 +118,7 @@ export interface SearchParams {
   discipline?: string;
   drawingType?: string;
   project?: string;
+  sheetNumbers?: string[];
   top_k?: number;
 }
 

@@ -4,6 +4,8 @@ export interface ExtractedDimension {
   totalInches: number;
   original: string;
   context?: string;
+  element?: string;
+  gridReference?: string;
 }
 
 export interface AreaCalculation {
@@ -17,17 +19,49 @@ export class DimensionExtractor {
   // Matches: 82'-0", 25'-6", 12'6", 6", etc.
   private dimensionPattern = /(\d+)[''][-\s]*(\d+)?[""]?/g;
   
+  // Structural member patterns
+  private memberLengthPattern = /(?:(?:W|HSS|C|L)\S+)\s+(?:x\s+)?(\d+[''][-\s]*\d*[""]?)/gi;
+  private spacingPattern = /(?:@|O\.C\.|spacing)\s*(\d+[''][-\s]*\d*[""]?)/gi;
+  private elevationPattern = /(?:EL\.?|ELEV\.?|T\.O\.S\.?|B\.O\.S\.?)\s*=?\s*(\d+[''][-\s]*\d*[""]?)/gi;
+  
   extractDimensions(text: string): ExtractedDimension[] {
     const dimensions: ExtractedDimension[] = [];
     const seen = new Set<number>();
-    const matches = text.matchAll(this.dimensionPattern);
     
+    // Extract member lengths with context
+    for (const match of text.matchAll(this.memberLengthPattern)) {
+      const dim = this.parseDimString(match[1]);
+      if (dim && !seen.has(dim.totalInches)) {
+        seen.add(dim.totalInches);
+        dimensions.push({ ...dim, element: 'member length' });
+      }
+    }
+    
+    // Extract spacing
+    for (const match of text.matchAll(this.spacingPattern)) {
+      const dim = this.parseDimString(match[1]);
+      if (dim && !seen.has(dim.totalInches)) {
+        seen.add(dim.totalInches);
+        dimensions.push({ ...dim, element: 'spacing' });
+      }
+    }
+    
+    // Extract elevations
+    for (const match of text.matchAll(this.elevationPattern)) {
+      const dim = this.parseDimString(match[1]);
+      if (dim && !seen.has(dim.totalInches)) {
+        seen.add(dim.totalInches);
+        dimensions.push({ ...dim, element: 'elevation' });
+      }
+    }
+    
+    // General dimensions
+    const matches = text.matchAll(this.dimensionPattern);
     for (const match of matches) {
       const feet = parseInt(match[1]);
       const inches = match[2] ? parseInt(match[2]) : 0;
       const totalInches = feet * 12 + inches;
       
-      // Deduplicate - only keep first occurrence of each unique dimension
       if (seen.has(totalInches)) continue;
       seen.add(totalInches);
       
@@ -40,6 +74,14 @@ export class DimensionExtractor {
     }
     
     return dimensions;
+  }
+  
+  private parseDimString(s: string): ExtractedDimension | null {
+    const m = s.match(/(\d+)[''][-\s]*(\d+)?[""]?/);
+    if (!m) return null;
+    const feet = parseInt(m[1]);
+    const inches = m[2] ? parseInt(m[2]) : 0;
+    return { feet, inches, totalInches: feet * 12 + inches, original: s };
   }
   
   calculateAreas(text: string): AreaCalculation[] {

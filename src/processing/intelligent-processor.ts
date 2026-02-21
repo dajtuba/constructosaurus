@@ -333,7 +333,7 @@ export class IntelligentDocumentProcessor {
             imageDir
           );
           
-          const visionResult = await this.visionAnalyzer.analyzeDrawingPage(imagePath, pageNum);
+          const visionResult = await this.visionAnalyzer.analyzeDrawingPage(imagePath, pageNum, 'Structural');
           
           // Store vision-extracted beams
           if (visionResult.beams && visionResult.beams.length > 0) {
@@ -366,10 +366,6 @@ export class IntelligentDocumentProcessor {
                 .map(b => `BEAM: ${b.mark}${b.gridLocation ? ` at ${b.gridLocation}` : ''}${b.count ? ` (QTY: ${b.count})` : ''}`)
                 .join('\n');
               sheets[sheetIndex].text += `\n\nVISION-EXTRACTED STRUCTURAL MEMBERS:\n${beamText}`;
-              
-              // Re-embed with enriched text
-              const enrichedText = sheets[sheetIndex].text.substring(0, 2000);
-              sheets[sheetIndex].vector = await this.embedService.embedQuery(enrichedText);
             }
           }
           
@@ -378,11 +374,49 @@ export class IntelligentDocumentProcessor {
             const sheetIndex = sheets.findIndex(s => s.pageNumber === pageNum);
             if (sheetIndex !== -1) {
               const columnText = visionResult.columns
-                .map(c => `COLUMN: ${c.mark}${c.gridLocation ? ` at ${c.gridLocation}` : ''}`)
+                .map(c => `COLUMN: ${c.mark}${c.gridLocation ? ` at ${c.gridLocation}` : ''}${c.height ? ` height ${c.height}` : ''}`)
                 .join('\n');
               sheets[sheetIndex].text += `\n${columnText}`;
-              
-              // Re-embed with enriched text
+            }
+          }
+          
+          // Augment with joists
+          if (visionResult.joists && visionResult.joists.length > 0) {
+            const sheetIndex = sheets.findIndex(s => s.pageNumber === pageNum);
+            if (sheetIndex !== -1) {
+              const joistText = visionResult.joists
+                .map(j => `JOIST: ${j.mark}${j.spacing ? ` @ ${j.spacing}` : ''}${j.span ? ` span ${j.span}` : ''}${j.count ? ` (QTY: ${j.count})` : ''}`)
+                .join('\n');
+              sheets[sheetIndex].text += `\n${joistText}`;
+            }
+          }
+          
+          // Augment with foundation elements
+          if (visionResult.foundation && visionResult.foundation.length > 0) {
+            const sheetIndex = sheets.findIndex(s => s.pageNumber === pageNum);
+            if (sheetIndex !== -1) {
+              const foundText = visionResult.foundation
+                .map(f => `FOUNDATION ${f.type.toUpperCase()}: ${f.size || ''}${f.rebar ? ` rebar: ${f.rebar}` : ''}${f.count ? ` (QTY: ${f.count})` : ''}`)
+                .join('\n');
+              sheets[sheetIndex].text += `\n${foundText}`;
+            }
+          }
+          
+          // Augment with connections
+          if (visionResult.connections && visionResult.connections.length > 0) {
+            const sheetIndex = sheets.findIndex(s => s.pageNumber === pageNum);
+            if (sheetIndex !== -1) {
+              const connText = visionResult.connections
+                .map(c => `CONNECTION: ${c.type}${c.location ? ` at ${c.location}` : ''}${c.detail ? ` - ${c.detail}` : ''}`)
+                .join('\n');
+              sheets[sheetIndex].text += `\n${connText}`;
+            }
+          }
+          
+          // Re-embed sheet with all enriched text (once, after all augmentations)
+          {
+            const sheetIndex = sheets.findIndex(s => s.pageNumber === pageNum);
+            if (sheetIndex !== -1) {
               const enrichedText = sheets[sheetIndex].text.substring(0, 2000);
               sheets[sheetIndex].vector = await this.embedService.embedQuery(enrichedText);
             }

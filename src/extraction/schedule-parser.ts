@@ -18,6 +18,25 @@ export interface FootingEntry {
   notes?: string;
 }
 
+export interface BeamScheduleEntry {
+  mark: string;
+  size: string;
+  length?: string;
+  quantity: number;
+  location?: string;
+  elevation?: string;
+  connection?: string;
+}
+
+export interface ColumnScheduleEntry {
+  mark: string;
+  size: string;
+  height?: string;
+  quantity: number;
+  location?: string;
+  basePlate?: string;
+}
+
 export interface ScheduleEntry {
   mark: string;
   data: Record<string, any>;
@@ -78,6 +97,76 @@ export class ScheduleParser {
 
   parseGenericSchedule(table: ExtractedTable): ScheduleEntry[] {
     return this.parseDoorSchedule(table); // Same logic
+  }
+
+  parseBeamSchedule(table: ExtractedTable): BeamScheduleEntry[] {
+    if (table.rows.length < 2) return [];
+    
+    const headers = this.normalizeHeaders(table.rows[0]);
+    const columnMap = this.mapHeaders(headers, {
+      mark: ['mark', 'beam', 'id', 'designation'],
+      size: ['size', 'section', 'shape', 'member'],
+      length: ['length', 'span', 'len'],
+      quantity: ['qty', 'quantity', 'count', 'no'],
+      location: ['location', 'grid', 'gridline', 'bay'],
+      elevation: ['elevation', 'elev', 'level'],
+      connection: ['connection', 'conn', 'end']
+    });
+    
+    const entries: BeamScheduleEntry[] = [];
+    
+    for (let i = 1; i < table.rows.length; i++) {
+      const row = table.rows[i];
+      const mark = this.getCell(row, columnMap.mark);
+      const size = this.getCell(row, columnMap.size);
+      if (!mark && !size) continue;
+      
+      entries.push({
+        mark: mark || size || '',
+        size: size || mark || '',
+        length: this.getCell(row, columnMap.length),
+        quantity: parseInt(this.getCell(row, columnMap.quantity) || '1') || 1,
+        location: this.getCell(row, columnMap.location),
+        elevation: this.getCell(row, columnMap.elevation),
+        connection: this.getCell(row, columnMap.connection)
+      });
+    }
+    
+    return entries;
+  }
+
+  parseColumnSchedule(table: ExtractedTable): ColumnScheduleEntry[] {
+    if (table.rows.length < 2) return [];
+    
+    const headers = this.normalizeHeaders(table.rows[0]);
+    const columnMap = this.mapHeaders(headers, {
+      mark: ['mark', 'column', 'col', 'id'],
+      size: ['size', 'section', 'shape', 'member'],
+      height: ['height', 'ht', 'length'],
+      quantity: ['qty', 'quantity', 'count', 'no'],
+      location: ['location', 'grid', 'gridline'],
+      basePlate: ['base', 'plate', 'baseplate']
+    });
+    
+    const entries: ColumnScheduleEntry[] = [];
+    
+    for (let i = 1; i < table.rows.length; i++) {
+      const row = table.rows[i];
+      const mark = this.getCell(row, columnMap.mark);
+      const size = this.getCell(row, columnMap.size);
+      if (!mark && !size) continue;
+      
+      entries.push({
+        mark: mark || size || '',
+        size: size || mark || '',
+        height: this.getCell(row, columnMap.height),
+        quantity: parseInt(this.getCell(row, columnMap.quantity) || '1') || 1,
+        location: this.getCell(row, columnMap.location),
+        basePlate: this.getCell(row, columnMap.basePlate)
+      });
+    }
+    
+    return entries;
   }
 
   private normalizeHeaders(headers: string[]): string[] {

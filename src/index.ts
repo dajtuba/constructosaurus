@@ -105,6 +105,11 @@ class ConstructosaurusServer {
                 type: "number",
                 description: "Number of results to return (default: 10)",
               },
+              sheetNumbers: {
+                type: "array",
+                items: { type: "string" },
+                description: "Filter by specific sheet numbers (e.g., ['S2.1', 'S3.0'])",
+              },
             },
             required: ["query"],
           },
@@ -196,6 +201,28 @@ class ConstructosaurusServer {
             properties: {},
           },
         },
+        {
+          name: "detect_conflicts",
+          description: "Detect conflicts between construction documents. Finds size mismatches (e.g., beam marked W18x106 on one sheet but W18x96 on another) and dimension conflicts across drawings.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              query: {
+                type: "string",
+                description: "Search query to find documents to check for conflicts (e.g., 'structural steel beams')",
+              },
+              discipline: {
+                type: "string",
+                description: "Filter by discipline",
+              },
+              top_k: {
+                type: "number",
+                description: "Number of documents to compare (default: 20)",
+              },
+            },
+            required: ["query"],
+          },
+        },
       ],
     }));
 
@@ -216,6 +243,8 @@ class ConstructosaurusServer {
             return await this.handleQuerySchedules(args);
           case "get_schedule_stats":
             return await this.handleScheduleStats(args);
+          case "detect_conflicts":
+            return await this.handleDetectConflicts(args);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
@@ -276,11 +305,10 @@ class ConstructosaurusServer {
   private async handleSearch(args: any) {
     const searchParams = {
       query: args.query,
-      filters: {
-        discipline: args.discipline,
-        drawingType: args.drawingType,
-        project: args.project,
-      },
+      discipline: args.discipline,
+      drawingType: args.drawingType,
+      project: args.project,
+      sheetNumbers: args.sheetNumbers,
       top_k: args.top_k || 10,
     };
 
@@ -445,6 +473,39 @@ class ConstructosaurusServer {
           text: output,
         },
       ],
+    };
+  }
+
+  private async handleDetectConflicts(args: any) {
+    const results = await this.searchEngine.search({
+      query: args.query,
+      discipline: args.discipline,
+      top_k: args.top_k || 20,
+    });
+
+    const conflicts = this.searchEngine.detectConflicts(results);
+
+    if (conflicts.length === 0) {
+      return {
+        content: [{
+          type: "text",
+          text: `No conflicts detected across ${results.length} documents for "${args.query}".`,
+        }],
+      };
+    }
+
+    let output = `# Document Conflicts Detected\n\nFound ${conflicts.length} conflict(s) across ${results.length} documents:\n\n`;
+    
+    for (const conflict of conflicts) {
+      output += `## ${conflict.severity.toUpperCase()}: ${conflict.type.replace(/_/g, ' ')} - ${conflict.element}\n`;
+      for (const doc of conflict.documents) {
+        output += `- **${doc.sheet}**: ${doc.value}\n`;
+      }
+      output += '\n';
+    }
+
+    return {
+      content: [{ type: "text", text: output }],
     };
   }
 

@@ -3,7 +3,7 @@ import { EmbeddingService } from "../embeddings/embedding-service";
 import { RerankingService } from "./reranking-service";
 import { SearchParams, SearchResult } from "../types";
 import { DimensionExtractor } from "../extraction/dimension-extractor";
-import { CrossReferenceDetector } from "../extraction/cross-reference-detector";
+import { CrossReferenceDetector, DocumentConflict } from "../extraction/cross-reference-detector";
 import { QueryIntentDetector } from "./query-intent-detector";
 import { TakeoffSynthesizer, MaterialTakeoff } from "../services/takeoff-synthesizer";
 import { ResultDeduplicator } from "./result-deduplicator";
@@ -43,7 +43,7 @@ export class HybridSearchEngine {
   }
 
   async search(params: SearchParams, resolveRefs: boolean = true): Promise<SearchResult[]> {
-    const { query, discipline, drawingType, project, top_k = 10 } = params;
+    const { query, discipline, drawingType, project, sheetNumbers, top_k = 10 } = params;
 
     // Detect query intent
     const intent = this.intentDetector.detect(query);
@@ -68,10 +68,22 @@ export class HybridSearchEngine {
 
     const vectorResults = await vectorQuery.execute();
 
-    if (this.rerankService && vectorResults.length > 0) {
+    // Post-filter by sheet numbers if specified
+    let filtered = vectorResults;
+    if (sheetNumbers && sheetNumbers.length > 0) {
+      const sheetSet = new Set(sheetNumbers.map(s => s.toUpperCase()));
+      filtered = vectorResults.filter((r: any) => {
+        const dn = (r.drawingNumber || '').toUpperCase();
+        return sheetSet.has(dn) || sheetNumbers.some(s => dn.includes(s.toUpperCase()));
+      });
+      // Fall back to unfiltered if no matches
+      if (filtered.length === 0) filtered = vectorResults;
+    }
+
+    if (this.rerankService && filtered.length > 0) {
       const reranked = await this.rerankService.rerank({
         query,
-        documents: vectorResults.map((r: any) => ({
+        documents: filtered.map((r: any) => ({
           text: r.text,
           id: r.id,
         })),
@@ -79,7 +91,7 @@ export class HybridSearchEngine {
       });
 
       return reranked.map((r: any) => {
-        const original = vectorResults.find((vr: any) => vr.id === r.id);
+        const original = filtered.find((vr: any) => vr.id === r.id);
         return {
           id: r.id,
           text: r.text,
@@ -93,7 +105,7 @@ export class HybridSearchEngine {
     }
 
     // Apply intent-based boosting
-    const boostedResults = vectorResults.map((r: any) => {
+    const boostedResults = filtered.map((r: any) => {
       const drawingType = r.drawingType || 'general';
       const boost = boostFactors[drawingType] || 1.0;
       return {
@@ -141,5 +153,9 @@ export class HybridSearchEngine {
   
   synthesizeTakeoff(results: SearchResult[]): MaterialTakeoff[] {
     return this.takeoffSynthesizer.synthesize(results);
+  }
+  
+  detectConflicts(results: SearchResult[]): DocumentConflict[] {
+    return this.crossRefDetector.detectConflicts(results);
   }
 }
