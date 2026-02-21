@@ -2,7 +2,7 @@ export class EmbeddingService {
   private model: string;
   private ollamaUrl: string;
 
-  constructor(model: string = "nomic-embed-text", ollamaUrl: string = "http://localhost:11434") {
+  constructor(model: string = "mxbai-embed-large", ollamaUrl: string = "http://localhost:11434") {
     this.model = model;
     this.ollamaUrl = ollamaUrl;
   }
