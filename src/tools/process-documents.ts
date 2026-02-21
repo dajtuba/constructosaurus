@@ -31,7 +31,7 @@ async function processDocuments() {
   const processor = new IntelligentDocumentProcessor(
     embedService, 
     scheduleStorePath,
-    { type: 'ollama', model: 'llava:13b' } // Use free Ollama vision
+    { type: 'ollama', model: 'glm-ocr' } // Use free Ollama vision
   );
   const searchEngine = new HybridSearchEngine(dbPath, embedService);
 
