@@ -131,7 +131,7 @@ Return ONLY valid JSON:
         jsonText = jsonText.substring(firstBrace, lastBrace + 1);
       }
 
-      // Fix common JSON issues from LLaVA
+      // Fix common JSON issues from vision models
       while (jsonText.includes('"""')) {
         jsonText = jsonText.replace('"""', '"');
       }
@@ -141,12 +141,20 @@ Return ONLY valid JSON:
         if (ch === '\n' || ch === '\r' || ch === '\t') return ' ';
         return '';
       });
+      // Fix dimension strings with escaped quotes that break JSON
+      // e.g., "34'-6\"" inside a JSON string — replace \" with ''
+      jsonText = jsonText.replace(/(\d+)'[-\s]*(\d+)\\"/g, "$1'-$2in");
       
       let parsed;
       try {
         parsed = JSON5.parse(jsonText);
       } catch {
-        parsed = JSON.parse(jsonText);
+        try {
+          parsed = JSON.parse(jsonText);
+        } catch {
+          // Truncated response — try to salvage partial JSON
+          parsed = this.salvagePartialJson(jsonText);
+        }
       }
 
       // Post-process OCR corrections on all extracted data
@@ -195,6 +203,28 @@ Return ONLY valid JSON:
         itemCounts: []
       };
     }
+  }
+
+  /** Attempt to extract usable data from truncated JSON */
+  private salvagePartialJson(text: string): any {
+    const result: any = {};
+    
+    // Try to extract each top-level array that completed
+    const arrayPattern = /"(\w+)"\s*:\s*\[([^\]]*)\]/g;
+    for (const match of text.matchAll(arrayPattern)) {
+      try {
+        result[match[1]] = JSON5.parse(`[${match[2]}]`);
+      } catch {
+        // Skip malformed arrays
+      }
+    }
+    
+    if (Object.keys(result).length > 0) {
+      console.log(`  ℹ️  Salvaged partial JSON: ${Object.keys(result).join(', ')}`);
+      return result;
+    }
+    
+    throw new Error('Could not salvage any data from truncated response');
   }
 
   /** Fix common OCR misreads in structural callouts */
