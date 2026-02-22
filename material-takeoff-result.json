@@ -1,0 +1,68 @@
+{
+  "sheet": "S2.1",
+  "materials": [
+    {
+      "spec": "14 TJI 560 @ 16 OC",
+      "quantity": 57,
+      "unit": "EA",
+      "span": 288,
+      "locations": [
+        "left",
+        "center",
+        "right"
+      ],
+      "calculation": "288\" span ÷ 16\" OC + 1 = 19 EA + 288\" span ÷ 16\" OC + 1 = 19 EA + 288\" span ÷ 16\" OC + 1 = 19 EA"
+    },
+    {
+      "spec": "5 1/8 x 18 GLB",
+      "quantity": 3,
+      "unit": "EA",
+      "span": 288,
+      "locations": [
+        "left",
+        "center",
+        "right"
+      ],
+      "calculation": "1 beam per left zone = 1 EA + 1 beam per center zone = 1 EA + 1 beam per right zone = 1 EA"
+    },
+    {
+      "spec": "3 1/2 x 14 LVL",
+      "quantity": 3,
+      "unit": "EA",
+      "span": 288,
+      "locations": [
+        "left",
+        "center",
+        "right"
+      ],
+      "calculation": "1 beam per left zone = 1 EA + 1 beam per center zone = 1 EA + 1 beam per right zone = 1 EA"
+    },
+    {
+      "spec": "6x6 PT",
+      "quantity": 4,
+      "unit": "EA",
+      "locations": [
+        "left",
+        "center"
+      ],
+      "calculation": "2 columns per left zone = 2 EA + 2 columns per center zone = 2 EA"
+    },
+    {
+      "spec": "4x4 PSL",
+      "quantity": 2,
+      "unit": "EA",
+      "locations": [
+        "right"
+      ],
+      "calculation": "2 columns per right zone = 2 EA"
+    }
+  ],
+  "totals": {
+    "14 TJI 560 @ 16 OC": 57,
+    "5 1/8 x 18 GLB": 3,
+    "3 1/2 x 14 LVL": 3,
+    "6x6 PT": 4,
+    "4x4 PSL": 2
+  },
+  "calculated_at": "2026-02-22T23:29:05.575Z"
+}

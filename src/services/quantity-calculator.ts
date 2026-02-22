@@ -1,144 +1,264 @@
-import { ScheduleStore } from "../storage/schedule-store";
+import { OllamaVisionAnalyzer } from '../vision/ollama-vision-analyzer.js';
 
-export interface MaterialQuantity {
-  material: string;
-  quantity: number;
-  unit: string;
-  source: string[];
-  wasteFactorApplied: number;
+export interface DimensionData {
+  span: number; // in inches
+  width?: number; // in inches
+  area?: number; // in square feet
+  location: string;
 }
 
-export interface SupplyList {
+export interface MaterialQuantity {
+  spec: string;
+  quantity: number;
+  unit: 'EA' | 'LF' | 'SF' | 'BF';
+  span?: number;
+  locations: string[];
+  calculation: string;
+}
+
+export interface MaterialTakeoff {
+  sheet: string;
   materials: MaterialQuantity[];
-  totalItems: number;
-  documentSources: string[];
+  totals: Record<string, number>;
+  calculated_at: string;
 }
 
 export class QuantityCalculator {
-  private scheduleStore: ScheduleStore;
+  constructor(private vision: OllamaVisionAnalyzer) {}
 
-  constructor(scheduleStorePath: string) {
-    this.scheduleStore = new ScheduleStore(scheduleStorePath);
+  // Parse spacing from spec string (@ 16" OC → 16)
+  parseSpacing(spec: string): number {
+    const match = spec.match(/@\s*(\d+(?:\.\d+)?)\s*["\s]*OC/i);
+    return match ? parseFloat(match[1]) : 16; // default 16" OC
   }
 
-  async generateSupplyList(documentId?: string): Promise<SupplyList> {
-    const schedules = documentId 
-      ? this.scheduleStore.getSchedulesByDocument(documentId)
-      : this.scheduleStore.getAllSchedules();
+  // Extract dimensions from plan using vision
+  async extractDimensions(imagePath: string, zone?: string): Promise<DimensionData[]> {
+    const result = await this.vision.analyzeDrawingPage(imagePath, 1, 'structural');
+    
+    // Extract dimensions from vision result
+    const dimensions: DimensionData[] = [];
+    
+    if (result.dimensions) {
+      result.dimensions.forEach(dim => {
+        const span = this.parseDimension(dim.value);
+        if (span > 0) {
+          dimensions.push({
+            span,
+            location: dim.location || dim.element || 'unknown'
+          });
+        }
+      });
+    }
+    
+    // If no dimensions found, try to extract from any text in the result
+    if (dimensions.length === 0) {
+      const resultText = JSON.stringify(result);
+      return this.extractDimensionsFromText(resultText);
+    }
+    
+    return dimensions;
+  }
 
-    const materials = new Map<string, MaterialQuantity>();
+  // Parse dimension string to inches (24'-6" → 294)
+  private parseDimension(dim: string): number {
+    if (typeof dim === 'number') return dim;
+    
+    // Handle feet-inches format (24'-6")
+    const feetInches = dim.match(/(\d+)'-(\d+)"/);
+    if (feetInches) {
+      return parseInt(feetInches[1]) * 12 + parseInt(feetInches[2]);
+    }
+    
+    // Handle feet only (24')
+    const feetOnly = dim.match(/(\d+)'/);
+    if (feetOnly) {
+      return parseInt(feetOnly[1]) * 12;
+    }
+    
+    // Handle inches only (18")
+    const inchesOnly = dim.match(/(\d+)"/);
+    if (inchesOnly) {
+      return parseInt(inchesOnly[1]);
+    }
+    
+    // Handle decimal feet (24.5)
+    const decimal = parseFloat(dim);
+    if (!isNaN(decimal)) {
+      return decimal > 50 ? decimal : decimal * 12; // assume feet if > 50
+    }
+    
+    return 0;
+  }
 
-    for (const schedule of schedules) {
-      const entries = this.scheduleStore.getEntries(schedule.id);
+  // Fallback dimension extraction from text
+  private extractDimensionsFromText(text: string): DimensionData[] {
+    const dimensions: DimensionData[] = [];
+    const dimRegex = /(\d+(?:'-\d+"?|\'\d*"?|"\d*|\.?\d*))/g;
+    const matches = text.match(dimRegex) || [];
+    
+    matches.forEach((match, i) => {
+      const span = this.parseDimension(match);
+      if (span > 0) {
+        dimensions.push({
+          span,
+          location: `dimension_${i + 1}`
+        });
+      }
+    });
+    
+    return dimensions;
+  }
+
+  // Calculate joist quantity: span ÷ spacing + 1
+  calculateJoistQuantity(span: number, spacing: number): number {
+    if (span <= 0 || spacing <= 0) return 0;
+    return Math.floor(span / spacing) + 1;
+  }
+
+  // Calculate beam quantity (typically 1 per span)
+  calculateBeamQuantity(spans: number[]): number {
+    return spans.length;
+  }
+
+  // Generate material takeoff from zone data and dimensions
+  async generateTakeoff(
+    zoneData: any,
+    imagePath: string
+  ): Promise<MaterialTakeoff> {
+    const dimensions = await this.extractDimensions(imagePath);
+    const materials: MaterialQuantity[] = [];
+    
+    // Process each zone
+    for (const zone of zoneData.zones) {
+      const zoneDims = dimensions.filter(d => 
+        d.location.toLowerCase().includes(zone.zone) ||
+        d.location.toLowerCase().includes('overall') ||
+        d.span > 200 // likely main spans
+      );
       
-      for (const entry of entries) {
-        this.processEntry(entry, schedule, materials);
+      const mainSpan = zoneDims.length > 0 
+        ? Math.max(...zoneDims.map(d => d.span))
+        : 288; // default 24' span
+      
+      // Calculate joists
+      for (const joistSpec of zone.joists || []) {
+        const spacing = this.parseSpacing(joistSpec);
+        const quantity = this.calculateJoistQuantity(mainSpan, spacing);
+        
+        materials.push({
+          spec: joistSpec,
+          quantity,
+          unit: 'EA',
+          span: mainSpan,
+          locations: [zone.zone],
+          calculation: `${mainSpan}" span ÷ ${spacing}" OC + 1 = ${quantity} EA`
+        });
+      }
+      
+      // Calculate beams (1 per span typically)
+      for (const beamSpec of zone.beams || []) {
+        materials.push({
+          spec: beamSpec,
+          quantity: 1,
+          unit: 'EA',
+          span: mainSpan,
+          locations: [zone.zone],
+          calculation: `1 beam per ${zone.zone} zone = 1 EA`
+        });
+      }
+      
+      // Calculate plates (perimeter)
+      for (const plateSpec of zone.plates || []) {
+        const perimeter = mainSpan * 2; // simplified
+        materials.push({
+          spec: plateSpec,
+          quantity: Math.ceil(perimeter / 12), // convert to LF
+          unit: 'LF',
+          locations: [zone.zone],
+          calculation: `${perimeter}" perimeter ÷ 12 = ${Math.ceil(perimeter / 12)} LF`
+        });
+      }
+      
+      // Calculate columns (count as-is)
+      for (const columnSpec of zone.columns || []) {
+        materials.push({
+          spec: columnSpec,
+          quantity: 2, // typical per zone
+          unit: 'EA',
+          locations: [zone.zone],
+          calculation: `2 columns per ${zone.zone} zone = 2 EA`
+        });
       }
     }
-
+    
+    // Consolidate duplicate specs
+    const consolidated = this.consolidateMaterials(materials);
+    
+    // Calculate totals
+    const totals: Record<string, number> = {};
+    consolidated.forEach(m => {
+      totals[m.spec] = m.quantity;
+    });
+    
     return {
-      materials: Array.from(materials.values()),
-      totalItems: materials.size,
-      documentSources: [...new Set(schedules.map(s => s.documentId))]
+      sheet: zoneData.sheet,
+      materials: consolidated,
+      totals,
+      calculated_at: new Date().toISOString()
     };
   }
 
-  private processEntry(
-    entry: any,
-    schedule: any,
-    materials: Map<string, MaterialQuantity>
-  ): void {
-    const type = schedule.scheduleType;
-
-    if (type === 'footing_schedule') {
-      this.processFooting(entry, materials);
-    } else if (type === 'door_schedule' || type === 'window_schedule') {
-      this.processDoorWindow(entry, type, materials);
-    } else if (type === 'verification_table' || type === 'load_capacity_table') {
-      this.processStructural(entry, materials);
-    }
-  }
-
-  private processFooting(entry: any, materials: Map<string, MaterialQuantity>): void {
-    // Concrete
-    if (entry.data.width && entry.data.length && entry.data.depth) {
-      const volume = this.calculateVolume(
-        entry.data.width,
-        entry.data.length,
-        entry.data.depth
-      );
-      
-      if (volume > 0) {
-        const key = `concrete_${entry.data.concreteStrength || '3000'}psi`;
-        this.addMaterial(materials, key, volume, 'cubic_yards', entry.mark, 1.1);
+  // Consolidate materials with same spec
+  private consolidateMaterials(materials: MaterialQuantity[]): MaterialQuantity[] {
+    const consolidated = new Map<string, MaterialQuantity>();
+    
+    materials.forEach(material => {
+      const existing = consolidated.get(material.spec);
+      if (existing) {
+        existing.quantity += material.quantity;
+        existing.locations = [...new Set([...existing.locations, ...material.locations])];
+        existing.calculation += ` + ${material.calculation}`;
+      } else {
+        consolidated.set(material.spec, { ...material });
       }
-    }
-
-    // Rebar
-    if (entry.data.rebar) {
-      const rebarKey = `rebar_${entry.data.rebar}`;
-      this.addMaterial(materials, rebarKey, 1, 'linear_feet', entry.mark, 1.15);
-    }
-  }
-
-  private processDoorWindow(entry: any, type: string, materials: Map<string, MaterialQuantity>): void {
-    const item = type === 'door_schedule' ? 'door' : 'window';
-    const size = entry.data.width && entry.data.height 
-      ? `${entry.data.width}x${entry.data.height}`
-      : 'standard';
+    });
     
-    const key = `${item}_${size}`;
-    this.addMaterial(materials, key, 1, 'each', entry.mark, 1.05);
+    return Array.from(consolidated.values());
   }
 
-  private processStructural(entry: any, materials: Map<string, MaterialQuantity>): void {
-    if (entry.data.material && entry.data.size) {
-      const key = `${entry.data.material}_${entry.data.size}`.replace(/[^a-zA-Z0-9_]/g, '_');
-      const length = this.parseLength(entry.data.span || '12');
-      this.addMaterial(materials, key, length, 'linear_feet', entry.mark, 1.1);
-    }
-  }
-
-  private addMaterial(
-    materials: Map<string, MaterialQuantity>,
-    key: string,
-    quantity: number,
-    unit: string,
-    source: string,
-    wasteFactor: number
-  ): void {
-    const existing = materials.get(key);
-    const adjustedQty = quantity * wasteFactor;
-
-    if (existing) {
-      existing.quantity += adjustedQty;
-      existing.source.push(source);
-    } else {
-      materials.set(key, {
-        material: key,
-        quantity: adjustedQty,
-        unit,
-        source: [source],
-        wasteFactorApplied: wasteFactor
-      });
-    }
-  }
-
-  private calculateVolume(width: number, length: number, depth: number): number {
-    // Convert to cubic yards
-    const cubicFeet = (width / 12) * (length / 12) * (depth / 12);
-    return cubicFeet / 27;
-  }
-
-  private parseLength(value: string | number): number {
-    if (typeof value === 'number') return value;
+  // Validate quantities (sanity check)
+  validateQuantities(takeoff: MaterialTakeoff): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
     
-    const match = value.match(/(\d+)(?:'-(\d+)"?)?/);
-    if (match) {
-      const feet = parseInt(match[1]) || 0;
-      const inches = parseInt(match[2]) || 0;
-      return feet + inches / 12;
-    }
-    return 0;
+    takeoff.materials.forEach(material => {
+      // Check for obviously wrong quantities
+      if (material.quantity <= 0) {
+        errors.push(`${material.spec}: Quantity is ${material.quantity} (should be > 0)`);
+      }
+      
+      if (material.unit === 'EA' && material.quantity > 500) {
+        errors.push(`${material.spec}: ${material.quantity} pieces seems excessive for residential`);
+      }
+      
+      if (material.unit === 'LF' && material.quantity > 5000) {
+        errors.push(`${material.spec}: ${material.quantity} LF seems excessive for residential`);
+      }
+      
+      // Check joist quantities specifically
+      if (material.spec.includes('TJI') || material.spec.includes('joist')) {
+        if (material.quantity > 200) {
+          errors.push(`${material.spec}: ${material.quantity} joists seems excessive (typical house: 50-150)`);
+        }
+        if (material.quantity < 5) {
+          errors.push(`${material.spec}: ${material.quantity} joists seems too few`);
+        }
+      }
+    });
+    
+    return {
+      valid: errors.length === 0,
+      errors
+    };
   }
 }

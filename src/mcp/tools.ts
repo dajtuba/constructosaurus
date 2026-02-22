@@ -3,6 +3,7 @@ import { MaterialsExtractor } from "../extraction/materials-extractor";
 import { ScheduleQueryService } from "../services/schedule-query-service";
 import { QuantityCalculator } from "../services/quantity-calculator";
 import { VisionMCPTools } from "./vision-tools";
+import { HybridMCPTools } from "./hybrid-tools";
 
 export interface MCPTool {
   name: string;
@@ -273,6 +274,42 @@ export const MCP_TOOLS: MCPTool[] = [
       required: ["sheet", "location", "expected"],
     },
   },
+  {
+    name: "get_member_verified",
+    description: "🔄 HYBRID: Get member data from database then verify with live vision analysis. Combines speed of DB lookup with accuracy of vision verification. Caches results for 5 minutes.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        designation: {
+          type: "string",
+          description: "Member designation (e.g., 'D1', 'D2', 'B1')",
+        },
+      },
+      required: ["designation"],
+    },
+  },
+  {
+    name: "get_inventory_verified",
+    description: "🔄 HYBRID: Get material inventory from database then spot-check 3 random items with vision analysis. Provides confidence score for inventory accuracy.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sheet: {
+          type: "string",
+          description: "Sheet name (e.g., 'S2.1', 'S2.2')",
+        },
+      },
+      required: ["sheet"],
+    },
+  },
+  {
+    name: "find_conflicts_verified",
+    description: "🔄 HYBRID: Find specification conflicts from database then verify each with image proof. Eliminates false positives by checking actual drawings.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
 ];
 
 /**
@@ -281,6 +318,7 @@ export const MCP_TOOLS: MCPTool[] = [
  */
 export class MCPToolHandlers {
   private visionTools: VisionMCPTools;
+  private hybridTools: HybridMCPTools;
 
   constructor(
     private searchEngine: HybridSearchEngine,
@@ -289,6 +327,7 @@ export class MCPToolHandlers {
     private quantityCalculator?: QuantityCalculator
   ) {
     this.visionTools = new VisionMCPTools();
+    this.hybridTools = new HybridMCPTools("data/lancedb");
   }
 
   async countItems(params: any): Promise<string> {
@@ -801,6 +840,74 @@ Would you like me to extract materials first?`;
     output += `**Actual:** ${data.actual || 'Not found'}\n`;
     output += `**Result:** ${match}\n`;
     output += `**Confidence:** ${(result.confidence! * 100).toFixed(0)}%\n`;
+
+    return output;
+  }
+
+  async getMemberVerified(params: any): Promise<string> {
+    const result = await this.hybridTools.getMemberVerified(params.designation);
+    
+    let output = `🔄 **Member Verification: ${params.designation}**\n\n`;
+    
+    if (!result.db_data) {
+      return `❌ Member ${params.designation} not found in database`;
+    }
+
+    output += `**Database Data:**\n`;
+    output += `- Sheet: ${result.db_data.shell_set?.sheet || 'Unknown'}\n`;
+    output += `- Spec: ${result.db_data.shell_set?.spec || 'Unknown'}\n`;
+    output += `- Conflict: ${result.db_data.conflict ? '⚠️ Yes' : '✅ No'}\n\n`;
+
+    output += `**Vision Verification:**\n`;
+    output += `- Status: ${result.verified ? '✅ VERIFIED' : '❌ DISCREPANCY'}\n`;
+    
+    if (result.discrepancies.length > 0) {
+      output += `- Issues: ${result.discrepancies.join(', ')}\n`;
+    }
+
+    return output;
+  }
+
+  async getInventoryVerified(params: any): Promise<string> {
+    const result = await this.hybridTools.getInventoryVerified(params.sheet);
+    
+    let output = `🔄 **Inventory Verification: ${params.sheet}**\n\n`;
+    
+    output += `**Database Inventory:** ${result.db_inventory.length} items\n`;
+    result.db_inventory.slice(0, 5).forEach(item => {
+      output += `- ${item.quantity} ${item.unit} ${item.spec}\n`;
+    });
+
+    output += `\n**Spot Checks:** ${result.spot_checks.length} items verified\n`;
+    result.spot_checks.forEach(check => {
+      const status = check.verified ? '✅' : '❌';
+      output += `${status} ${check.spec}: DB=${check.db_quantity}\n`;
+    });
+
+    output += `\n**Overall Confidence:** ${(result.overall_confidence * 100).toFixed(0)}%\n`;
+
+    return output;
+  }
+
+  async findConflictsVerified(params: any): Promise<string> {
+    const result = await this.hybridTools.findConflictsVerified();
+    
+    let output = `🔄 **Conflicts Verification**\n\n`;
+    
+    output += `**Database Conflicts:** ${result.db_conflicts.length}\n`;
+    output += `**Vision Verified:** ${result.verified_conflicts.length}\n`;
+    output += `**False Positives:** ${result.false_positives.length}\n\n`;
+
+    if (result.verified_conflicts.length > 0) {
+      output += `**Confirmed Conflicts:**\n`;
+      result.verified_conflicts.forEach(conflict => {
+        output += `- ${conflict.designation}: "${conflict.shell_set_spec}" vs "${conflict.forteweb_spec}"\n`;
+      });
+    }
+
+    if (result.false_positives.length > 0) {
+      output += `\n**False Positives:** ${result.false_positives.join(', ')}\n`;
+    }
 
     return output;
   }
