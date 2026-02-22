@@ -209,13 +209,34 @@ Return ONLY valid JSON:
   private salvagePartialJson(text: string): any {
     const result: any = {};
     
-    // Try to extract each top-level array that completed
-    const arrayPattern = /"(\w+)"\s*:\s*\[([^\]]*)\]/g;
-    for (const match of text.matchAll(arrayPattern)) {
+    // Fix missing commas between objects: }{ or }  {
+    const fixed = text.replace(/\}\s*\{/g, '},{');
+    
+    // Try complete arrays first
+    const completePattern = /"(\w+)"\s*:\s*\[([^\]]*)\]/g;
+    for (const match of fixed.matchAll(completePattern)) {
       try {
         result[match[1]] = JSON5.parse(`[${match[2]}]`);
-      } catch {
-        // Skip malformed arrays
+      } catch { /* skip */ }
+    }
+    
+    // Try incomplete/truncated arrays — find opening [ and grab all complete objects
+    const incompletePattern = /"(\w+)"\s*:\s*\[/g;
+    for (const match of fixed.matchAll(incompletePattern)) {
+      if (result[match[1]]) continue; // Already got this one
+      
+      const start = match.index! + match[0].length;
+      // Extract all complete {...} objects from the array
+      const objects: any[] = [];
+      const objPattern = /\{[^{}]*\}/g;
+      const remaining = fixed.substring(start);
+      for (const objMatch of remaining.matchAll(objPattern)) {
+        try {
+          objects.push(JSON5.parse(objMatch[0]));
+        } catch { /* skip malformed */ }
+      }
+      if (objects.length > 0) {
+        result[match[1]] = objects;
       }
     }
     
@@ -224,7 +245,18 @@ Return ONLY valid JSON:
       return result;
     }
     
-    throw new Error('Could not salvage any data from truncated response');
+    // Last resort: extract any individual objects with known marks
+    const beams: any[] = [];
+    const memberPattern = /\{[^{}]*"mark"\s*:\s*"([^"]+)"[^{}]*\}/g;
+    for (const m of text.matchAll(memberPattern)) {
+      try { beams.push(JSON5.parse(m[0])); } catch { /* skip */ }
+    }
+    if (beams.length > 0) {
+      console.log(`  ℹ️  Salvaged ${beams.length} individual entries`);
+      return { beams };
+    }
+    
+    return { schedules: [], dimensions: [], itemCounts: [] };
   }
 
   /** Fix common OCR misreads in structural callouts */
