@@ -28,6 +28,8 @@
     "inspect-extended": "ts-node src/tools/inspect-extended.ts",
     "test-ollama-vision": "ts-node src/tools/test-ollama-vision.ts",
     "test-full-vision": "ts-node src/tools/test-full-vision.ts",
+    "init-member-db": "ts-node src/tools/init-member-db.ts",
+    "test-member-db": "ts-node src/tools/test-member-db.ts",
     "test-quantity": "ts-node src/tools/test-quantity-calculator.ts",
     "test-vision": "ts-node src/tools/test-vision-phase2.ts",
     "phase2-poc": "ts-node src/tools/phase2-proof-of-concept.ts",

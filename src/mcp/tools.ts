@@ -2,6 +2,7 @@ import { HybridSearchEngine } from "../search/hybrid-search-engine";
 import { MaterialsExtractor } from "../extraction/materials-extractor";
 import { ScheduleQueryService } from "../services/schedule-query-service";
 import { QuantityCalculator } from "../services/quantity-calculator";
+import { VisionMCPTools } from "./vision-tools";
 
 export interface MCPTool {
   name: string;
@@ -191,6 +192,87 @@ export const MCP_TOOLS: MCPTool[] = [
       },
     },
   },
+  {
+    name: "analyze_zone",
+    description: "🔍 VISION TIER: Analyze specific zone of a drawing sheet using live vision analysis. Use for targeted extraction from specific areas of drawings.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sheet: {
+          type: "string",
+          description: "Sheet identifier (e.g., 'S2.1', 'S3.0')",
+        },
+        zone: {
+          type: "string",
+          enum: ["left", "center", "right", "top", "bottom"],
+          description: "Zone to analyze",
+        },
+        query: {
+          type: "string",
+          description: "What to look for in the zone (e.g., 'joist specifications', 'beam callouts')",
+        },
+      },
+      required: ["sheet", "zone", "query"],
+    },
+  },
+  {
+    name: "analyze_drawing",
+    description: "🔍 VISION TIER: Analyze entire drawing sheet using live vision analysis. Use for comprehensive extraction from full drawings.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sheet: {
+          type: "string",
+          description: "Sheet identifier (e.g., 'S2.1', 'S3.0')",
+        },
+        query: {
+          type: "string",
+          description: "What to analyze (e.g., 'all structural members', 'framing layout')",
+        },
+      },
+      required: ["sheet", "query"],
+    },
+  },
+  {
+    name: "extract_callout",
+    description: "🔍 VISION TIER: Extract specific callout text from drawing at given location using live vision analysis.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sheet: {
+          type: "string",
+          description: "Sheet identifier (e.g., 'S2.1', 'S3.0')",
+        },
+        location: {
+          type: "string",
+          description: "Location description (e.g., 'left bay', 'grid A-B', 'center beam')",
+        },
+      },
+      required: ["sheet", "location"],
+    },
+  },
+  {
+    name: "verify_spec",
+    description: "🔍 VISION TIER: Verify specification against actual drawing using live vision analysis. Returns match/mismatch with confidence.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        sheet: {
+          type: "string",
+          description: "Sheet identifier (e.g., 'S2.1', 'S3.0')",
+        },
+        location: {
+          type: "string",
+          description: "Location to verify (e.g., 'left bay', 'grid A-B')",
+        },
+        expected: {
+          type: "string",
+          description: "Expected specification (e.g., '14\" TJI 560 @ 16\" OC')",
+        },
+      },
+      required: ["sheet", "location", "expected"],
+    },
+  },
 ];
 
 /**
@@ -198,12 +280,16 @@ export const MCP_TOOLS: MCPTool[] = [
  * These will be called by the MCP server with Claude Desktop providing the AI
  */
 export class MCPToolHandlers {
+  private visionTools: VisionMCPTools;
+
   constructor(
     private searchEngine: HybridSearchEngine,
     private materialsExtractor: MaterialsExtractor,
     private scheduleQueryService?: ScheduleQueryService,
     private quantityCalculator?: QuantityCalculator
-  ) {}
+  ) {
+    this.visionTools = new VisionMCPTools();
+  }
 
   async countItems(params: any): Promise<string> {
     // TRACER BULLET: Go straight to schedules, skip search entirely
