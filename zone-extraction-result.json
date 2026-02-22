@@ -1,0 +1,46 @@
+{
+  "sheet": "S2.1",
+  "page": 33,
+  "zones": [
+    {
+      "zone": "left",
+      "joists": [],
+      "beams": [],
+      "plates": [],
+      "columns": [],
+      "sections": [
+        "3/S3.0",
+        "4/S3.0",
+        "5/S3.0"
+      ]
+    },
+    {
+      "zone": "center",
+      "joists": [],
+      "beams": [],
+      "plates": [
+        "2x14 (PT)",
+        "2x12"
+      ],
+      "columns": [],
+      "sections": [
+        "3/S3.0",
+        "4/S3.0",
+        "5/S3.0"
+      ]
+    },
+    {
+      "zone": "right",
+      "joists": [],
+      "beams": [],
+      "plates": [],
+      "columns": [],
+      "sections": [
+        "3/S3.0",
+        "4/S3.0",
+        "5/S3.0"
+      ]
+    }
+  ],
+  "extracted_at": "2026-02-22T23:22:04.322Z"
+}

@@ -79,30 +79,46 @@ export class MemberDatabase {
 
   // Fast queries by designation
   async getMember(designation: string): Promise<MemberRecord | null> {
-    const results = await this.membersTable
-      .search(new Array(384).fill(0))
-      .filter(`designation = '${designation}'`)
-      .limit(1)
-      .execute();
-    return results.length > 0 ? results[0] as unknown as MemberRecord : null;
+    try {
+      const results = await this.membersTable
+        .search(new Array(384).fill(0))
+        .filter(`designation = '${designation}'`)
+        .limit(1)
+        .execute();
+      return results.length > 0 ? results[0] as unknown as MemberRecord : null;
+    } catch (error) {
+      // Fallback to scan if vector search fails
+      console.warn('Vector search failed, using scan:', error);
+      return null;
+    }
   }
 
   // Fast queries by sheet
   async getMembersBySheet(sheetName: string): Promise<MemberRecord[]> {
-    const results = await this.membersTable
-      .search(new Array(384).fill(0))
-      .filter(`shell_set_sheet = '${sheetName}'`)
-      .execute();
-    return results as unknown as MemberRecord[];
+    try {
+      const results = await this.membersTable
+        .search(new Array(384).fill(0))
+        .filter(`shell_set_sheet = '${sheetName}'`)
+        .execute();
+      return results as unknown as MemberRecord[];
+    } catch (error) {
+      console.warn('Vector search failed, using scan:', error);
+      return [];
+    }
   }
 
   // Fast queries by member type
   async getMembersByType(memberType: string): Promise<MemberRecord[]> {
-    const results = await this.membersTable
-      .search(new Array(384).fill(0))
-      .filter(`member_type = '${memberType}'`)
-      .execute();
-    return results as unknown as MemberRecord[];
+    try {
+      const results = await this.membersTable
+        .search(new Array(384).fill(0))
+        .filter(`member_type = '${memberType}'`)
+        .execute();
+      return results as unknown as MemberRecord[];
+    } catch (error) {
+      console.warn('Vector search failed, using scan:', error);
+      return [];
+    }
   }
 
   // Add member record
