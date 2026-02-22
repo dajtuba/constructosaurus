@@ -82,61 +82,47 @@ export class IntelligentDocumentProcessor {
       console.log(`  📋 Processing ${classification.pageCount} drawing sheets...`);
       const rawSheets = await this.sheetProcessor.processDrawing(pdfPath, classification);
       
-      // Generate embeddings for each sheet (in batches to avoid overloading Ollama)
       console.log(`  🔄 Generating embeddings for ${rawSheets.length} sheets...`);
       for (let i = 0; i < rawSheets.length; i++) {
         const sheet = rawSheets[i];
         if (i % 10 === 0) {
           console.log(`    Progress: ${i}/${rawSheets.length}`);
         }
-        // Start with 2000 chars, reduce if needed
-        let textToEmbed = sheet.text.substring(0, 2000);
-        let embedding: number[];
         
-        try {
-          embedding = await this.embedService.embedQuery(textToEmbed);
-        } catch (error: any) {
-          if (error.message.includes("exceeds the context length")) {
-            // Try with 1000 chars
-            console.log(`    ⚠️  Sheet ${i + 1} too long, retrying with 1000 chars...`);
-            textToEmbed = sheet.text.substring(0, 1000);
-            try {
-              embedding = await this.embedService.embedQuery(textToEmbed);
-            } catch (error2: any) {
-              if (error2.message.includes("exceeds the context length")) {
-                // Last resort: 500 chars
-                console.log(`    ⚠️  Sheet ${i + 1} still too long, using 500 chars...`);
-                textToEmbed = sheet.text.substring(0, 500);
-                embedding = await this.embedService.embedQuery(textToEmbed);
-              } else {
-                throw error2;
-              }
-            }
-          } else {
-            throw error;
+        // Chunk long text into ~400 char segments with overlap
+        const chunks = this.chunkText(sheet.text, 400, 50);
+        
+        for (let c = 0; c < chunks.length; c++) {
+          const embedding = await this.embedService.embedQuery(chunks[c]);
+          
+          sheets.push({
+            id: this.generateId(pdfPath, sheet.pageNumber, c > 0 ? `chunk-${c}` : undefined),
+            pageNumber: sheet.pageNumber,
+            text: c === 0 ? sheet.text : chunks[c], // First chunk stores full text for retrieval
+            metadata: {
+              source: sheet.metadata.source,
+              project: sheet.metadata.project || "Unknown",
+              discipline: sheet.metadata.discipline || "General",
+              drawingNumber: sheet.metadata.drawingNumber || "",
+              drawingType: sheet.metadata.drawingType || "General",
+              materials: sheet.metadata.materials || "",
+              components: sheet.metadata.components || "",
+            },
+            vector: embedding,
+          });
+          
+          if (c < chunks.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 50));
           }
         }
         
-        // Small delay to avoid overloading Ollama
+        if (chunks.length > 1) {
+          console.log(`    Sheet ${i + 1}: ${sheet.text.length} chars → ${chunks.length} chunks`);
+        }
+        
         if (i < rawSheets.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
-        sheets.push({
-          id: this.generateId(pdfPath, sheet.pageNumber),
-          pageNumber: sheet.pageNumber,
-          text: sheet.text,
-          metadata: {
-            source: sheet.metadata.source,
-            project: sheet.metadata.project || "Unknown",
-            discipline: sheet.metadata.discipline || "General",
-            drawingNumber: sheet.metadata.drawingNumber || "",
-            drawingType: sheet.metadata.drawingType || "General",
-            materials: sheet.metadata.materials || "",
-            components: sheet.metadata.components || "",
-          },
-          vector: embedding,
-        });
       }
     } else if (classification.type === "specification") {
       console.log(`  📖 Processing specification sections...`);
@@ -148,50 +134,36 @@ export class IntelligentDocumentProcessor {
         if (i % 5 === 0) {
           console.log(`    Progress: ${i}/${rawSheets.length}`);
         }
-        let textToEmbed = sheet.text.substring(0, 2000);
-        let embedding: number[];
         
-        try {
-          embedding = await this.embedService.embedQuery(textToEmbed);
-        } catch (error: any) {
-          if (error.message.includes("exceeds the context length")) {
-            console.log(`    ⚠️  Section ${i + 1} too long, retrying with 1000 chars...`);
-            textToEmbed = sheet.text.substring(0, 1000);
-            try {
-              embedding = await this.embedService.embedQuery(textToEmbed);
-            } catch (error2: any) {
-              if (error2.message.includes("exceeds the context length")) {
-                console.log(`    ⚠️  Section ${i + 1} still too long, using 500 chars...`);
-                textToEmbed = sheet.text.substring(0, 500);
-                embedding = await this.embedService.embedQuery(textToEmbed);
-              } else {
-                throw error2;
-              }
-            }
-          } else {
-            throw error;
+        const chunks = this.chunkText(sheet.text, 400, 50);
+        
+        for (let c = 0; c < chunks.length; c++) {
+          const embedding = await this.embedService.embedQuery(chunks[c]);
+          
+          sheets.push({
+            id: this.generateId(pdfPath, sheet.pageNumber, c > 0 ? `chunk-${c}` : undefined),
+            pageNumber: sheet.pageNumber,
+            text: c === 0 ? sheet.text : chunks[c],
+            metadata: {
+              source: sheet.metadata.source,
+              project: sheet.metadata.project || "Unknown",
+              discipline: sheet.metadata.discipline || "General",
+              drawingNumber: sheet.metadata.drawingNumber || "",
+              drawingType: sheet.metadata.drawingType || "Specification",
+              materials: sheet.metadata.materials || "",
+              components: sheet.metadata.components || "",
+            },
+            vector: embedding,
+          });
+          
+          if (c < chunks.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 50));
           }
         }
         
         if (i < rawSheets.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
-        sheets.push({
-          id: this.generateId(pdfPath, sheet.pageNumber),
-          pageNumber: sheet.pageNumber,
-          text: sheet.text,
-          metadata: {
-            source: sheet.metadata.source,
-            project: sheet.metadata.project || "Unknown",
-            discipline: sheet.metadata.discipline || "General",
-            drawingNumber: sheet.metadata.drawingNumber || "",
-            drawingType: sheet.metadata.drawingType || "Specification",
-            materials: sheet.metadata.materials || "",
-            components: sheet.metadata.components || "",
-          },
-          vector: embedding,
-        });
       }
     }
 
@@ -471,6 +443,31 @@ export class IntelligentDocumentProcessor {
       visionSchedules: visionScheduleCount,
       visionItemCounts: visionItemCountTotal
     };
+  }
+
+  /** Split text into chunks that fit the embedding model's 512-token context window */
+  private chunkText(text: string, maxChars: number = 400, overlap: number = 50): string[] {
+    if (text.length <= maxChars) return [text];
+    
+    const chunks: string[] = [];
+    let start = 0;
+    
+    while (start < text.length) {
+      let end = start + maxChars;
+      
+      // Try to break at a newline or space
+      if (end < text.length) {
+        const newlineBreak = text.lastIndexOf('\n', end);
+        const spaceBreak = text.lastIndexOf(' ', end);
+        if (newlineBreak > start + maxChars / 2) end = newlineBreak + 1;
+        else if (spaceBreak > start + maxChars / 2) end = spaceBreak + 1;
+      }
+      
+      chunks.push(text.substring(start, end));
+      start = end - overlap;
+    }
+    
+    return chunks;
   }
 
   private generateId(source: string, page: number, suffix?: string): string {
