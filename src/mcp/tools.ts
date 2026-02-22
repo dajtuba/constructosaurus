@@ -689,4 +689,119 @@ Would you like me to extract materials first?`;
 
     return output;
   }
+
+  // Vision Tier Tool Handlers
+  async analyzeZone(params: any): Promise<string> {
+    const result = await this.visionTools.analyzeZone(params.sheet, params.zone, params.query);
+    
+    if (!result.success) {
+      return `❌ Vision analysis failed: ${result.error}`;
+    }
+
+    let output = `🔍 **Zone Analysis: ${params.sheet} (${params.zone})**\n\n`;
+    output += `**Query:** ${params.query}\n`;
+    output += `**Confidence:** ${(result.confidence! * 100).toFixed(0)}%\n\n`;
+
+    const data = result.data;
+    if (data.beams?.length > 0) {
+      output += `**Beams Found:** ${data.beams.length}\n`;
+      data.beams.slice(0, 5).forEach((b: any) => {
+        output += `- ${b.mark || 'Unknown'} ${b.gridLocation ? `at ${b.gridLocation}` : ''}\n`;
+      });
+    }
+
+    if (data.joists?.length > 0) {
+      output += `**Joists Found:** ${data.joists.length}\n`;
+      data.joists.slice(0, 3).forEach((j: any) => {
+        output += `- ${j.mark || 'Unknown'} ${j.spacing ? `@ ${j.spacing}` : ''}\n`;
+      });
+    }
+
+    return output;
+  }
+
+  async analyzeDrawing(params: any): Promise<string> {
+    const result = await this.visionTools.analyzeDrawing(params.sheet, params.query);
+    
+    if (!result.success) {
+      return `❌ Vision analysis failed: ${result.error}`;
+    }
+
+    let output = `🔍 **Drawing Analysis: ${params.sheet}**\n\n`;
+    output += `**Query:** ${params.query}\n`;
+    output += `**Confidence:** ${(result.confidence! * 100).toFixed(0)}%\n\n`;
+
+    const data = result.data;
+    
+    // Summary counts
+    const counts = {
+      beams: data.beams?.length || 0,
+      columns: data.columns?.length || 0,
+      joists: data.joists?.length || 0,
+      schedules: data.schedules?.length || 0
+    };
+
+    output += `**Elements Found:**\n`;
+    Object.entries(counts).forEach(([type, count]) => {
+      if (count > 0) output += `- ${type}: ${count}\n`;
+    });
+
+    return output;
+  }
+
+  async extractCallout(params: any): Promise<string> {
+    const result = await this.visionTools.extractCallout(params.sheet, params.location);
+    
+    if (!result.success) {
+      return `❌ Callout extraction failed: ${result.error}`;
+    }
+
+    let output = `🔍 **Callout Extraction: ${params.sheet}**\n\n`;
+    output += `**Location:** ${params.location}\n`;
+    output += `**Confidence:** ${(result.confidence! * 100).toFixed(0)}%\n\n`;
+
+    const data = result.data;
+    if (data.beams?.length > 0) {
+      output += `**Beams at Location:**\n`;
+      data.beams.forEach((b: any) => {
+        output += `- ${b.mark || 'Unknown'}\n`;
+      });
+    }
+
+    if (data.joists?.length > 0) {
+      output += `**Joists at Location:**\n`;
+      data.joists.forEach((j: any) => {
+        output += `- ${j.mark || 'Unknown'}\n`;
+      });
+    }
+
+    if (data.columns?.length > 0) {
+      output += `**Columns at Location:**\n`;
+      data.columns.forEach((c: any) => {
+        output += `- ${c.mark || 'Unknown'}\n`;
+      });
+    }
+
+    return output || "No callouts found at specified location.";
+  }
+
+  async verifySpec(params: any): Promise<string> {
+    const result = await this.visionTools.verifySpec(params.sheet, params.location, params.expected);
+    
+    if (!result.success) {
+      return `❌ Spec verification failed: ${result.error}`;
+    }
+
+    const data = result.data;
+    const match = data.matches ? "✅ MATCH" : "❌ MISMATCH";
+    
+    let output = `🔍 **Spec Verification: ${params.sheet}**\n\n`;
+    output += `**Location:** ${params.location}\n`;
+    output += `**Expected:** ${params.expected}\n`;
+    output += `**Actual:** ${data.actual || 'Not found'}\n`;
+    output += `**Result:** ${match}\n`;
+    output += `**Confidence:** ${(result.confidence! * 100).toFixed(0)}%\n`;
+
+    return output;
+  }
 }

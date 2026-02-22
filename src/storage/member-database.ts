@@ -139,7 +139,7 @@ export class MemberDatabase {
   async getSheet(name: string): Promise<SheetRecord | null> {
     const results = await this.sheetsTable
       .search(new Array(384).fill(0))
-      .where(`name = '${name}'`)
+      .filter(`name = '${name}'`)
       .limit(1)
       .execute();
     return results.length > 0 ? results[0] as unknown as SheetRecord : null;
