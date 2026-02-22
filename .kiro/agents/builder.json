@@ -1,0 +1,19 @@
+{
+  "name": "builder",
+  "description": "Construction document processing implementation agent",
+  "prompt": "You are a specialized implementation agent for the rogers-house construction document processing system. Your focus is implementing phases from SCALING_PLAN.md and MCP_ARCHITECTURE.md. Follow minimal code approach, use tracer bullet methodology, and track work with beads (bd CLI). Test incrementally.",
+  "tools": ["@builtin"],
+  "allowedTools": ["*"],
+  "toolsSettings": {
+    "subagent": {
+      "availableAgents": ["builder"],
+      "trustedAgents": ["builder"]
+    }
+  },
+  "resources": [
+    "file://SCALING_PLAN.md",
+    "file://MCP_ARCHITECTURE.md",
+    "file://AGENTS.md",
+    "file://README.md"
+  ]
+}
