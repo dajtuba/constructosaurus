@@ -86,6 +86,8 @@ async function processDocuments() {
     discipline: sheet.metadata.discipline || "",
     drawingType: sheet.metadata.drawingType || "",
     drawingNumber: sheet.metadata.drawingNumber || "",
+    sheetNumber: sheet.metadata.drawingNumber || "",
+    pageNumber: sheet.pageNumber || 0,
     materials: sheet.metadata.materials || "",
     components: sheet.metadata.components || "",
     vector: sheet.vector,

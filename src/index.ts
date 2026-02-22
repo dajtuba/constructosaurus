@@ -328,11 +328,72 @@ class ConstructosaurusServer {
     const results = await this.searchEngine.search(searchParams);
     this.cache.set(searchParams, results);
 
+    // Build agent-friendly structured output
+    const output: any = {
+      query: args.query,
+      resultCount: results.length,
+      results: results.map(r => {
+        const structured: any = {
+          sheetNumber: r.sheetNumber || r.drawingNumber,
+          pageNumber: r.pageNumber,
+          discipline: r.discipline,
+          drawingType: r.drawingType,
+          text: r.text,
+          score: r.score,
+        };
+        
+        // Include extracted dimensions if present
+        if (r.dimensions && r.dimensions.length > 0) {
+          structured.dimensions = r.dimensions;
+        }
+        
+        // Include cross-references if present
+        if (r.crossReferences && r.crossReferences.length > 0) {
+          structured.crossReferences = r.crossReferences.map(cr => ({
+            type: cr.type,
+            reference: cr.reference,
+          }));
+        }
+        
+        return structured;
+      }),
+    };
+
+    // Auto-attach related schedule entries for pages in results
+    if (this.scheduleQueryService) {
+      const pages = new Set(results.map(r => r.pageNumber).filter(Boolean));
+      const relatedSchedules: any[] = [];
+      
+      const allSchedules = this.scheduleQueryService.querySchedules({});
+      if (allSchedules.schedules) {
+        for (const sched of allSchedules.schedules) {
+          if (pages.has(sched.pageNumber)) {
+            const entries = this.scheduleQueryService.querySchedules({ scheduleType: sched.scheduleType });
+            if (entries.entries) {
+              const pageEntries = entries.entries.filter((e: any) => e.pageNumber === sched.pageNumber);
+              if (pageEntries.length > 0) {
+                relatedSchedules.push({
+                  type: sched.scheduleType,
+                  page: sched.pageNumber,
+                  method: sched.extractionMethod,
+                  entries: pageEntries.map((e: any) => ({ mark: e.mark, ...e.data })),
+                });
+              }
+            }
+          }
+        }
+      }
+      
+      if (relatedSchedules.length > 0) {
+        output.relatedSchedules = relatedSchedules;
+      }
+    }
+
     return {
       content: [
         {
           type: "text",
-          text: JSON.stringify({ results, cached: false }, null, 2),
+          text: JSON.stringify(output, null, 2),
         },
       ],
     };

@@ -136,6 +136,8 @@ export interface SearchResult {
   discipline: string;
   drawingType: string;
   drawingNumber: string;
+  sheetNumber: string;
+  pageNumber: number;
   score: number;
   dimensions?: ExtractedDimension[];
   calculatedAreas?: AreaCalculation[];

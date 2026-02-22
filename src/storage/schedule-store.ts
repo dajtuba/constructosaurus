@@ -53,9 +53,13 @@ export class ScheduleStore {
 
   addEntry(entry: ScheduleEntry) {
     const entries = this.entries.get(entry.scheduleId) || [];
-    entries.push(entry);
-    this.entries.set(entry.scheduleId, entries);
-    this.save();
+    // Deduplicate by mark within same schedule
+    const existing = entries.find(e => e.mark === entry.mark && e.rowNumber === entry.rowNumber);
+    if (!existing) {
+      entries.push(entry);
+      this.entries.set(entry.scheduleId, entries);
+      this.save();
+    }
   }
 
   getSchedulesByDocument(documentId: string): ScheduleMetadata[] {

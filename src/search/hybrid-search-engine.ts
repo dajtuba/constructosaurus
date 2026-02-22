@@ -99,6 +99,8 @@ export class HybridSearchEngine {
           discipline: String(original?.discipline || ""),
           drawingType: String(original?.drawingType || ""),
           drawingNumber: String(original?.drawingNumber || ""),
+          sheetNumber: String(original?.sheetNumber || original?.drawingNumber || ""),
+          pageNumber: Number(original?.pageNumber) || 0,
           score: r.score,
         };
       });
@@ -124,6 +126,8 @@ export class HybridSearchEngine {
       discipline: r.discipline || "",
       drawingType: r.drawingType || "",
       drawingNumber: r.drawingNumber || "",
+      sheetNumber: r.sheetNumber || r.drawingNumber || "",
+      pageNumber: r.pageNumber || 0,
       score: r._distance,
       dimensions: this.dimensionExtractor.extractDimensions(r.text),
       calculatedAreas: this.dimensionExtractor.calculateAreas(r.text),
