@@ -385,12 +385,27 @@ export class IntelligentDocumentProcessor {
             }
           }
           
-          // Re-embed sheet with all enriched text (once, after all augmentations)
+          // Re-embed sheet with all enriched text using chunking
           {
             const sheetIndex = sheets.findIndex(s => s.pageNumber === pageNum);
             if (sheetIndex !== -1) {
-              const enrichedText = sheets[sheetIndex].text.substring(0, 2000);
-              sheets[sheetIndex].vector = await this.embedService.embedQuery(enrichedText);
+              const chunks = this.chunkText(sheets[sheetIndex].text, 400, 50);
+              sheets[sheetIndex].vector = await this.embedService.embedQuery(chunks[0]);
+              
+              // Add extra chunks as additional searchable entries
+              for (let c = 1; c < chunks.length; c++) {
+                const existingChunkId = this.generateId(pdfPath, pageNum, `vision-chunk-${c}`);
+                const existing = sheets.find(s => s.id === existingChunkId);
+                if (!existing) {
+                  sheets.push({
+                    id: existingChunkId,
+                    pageNumber: pageNum,
+                    text: chunks[c],
+                    metadata: { ...sheets[sheetIndex].metadata },
+                    vector: await this.embedService.embedQuery(chunks[c]),
+                  });
+                }
+              }
             }
           }
           
