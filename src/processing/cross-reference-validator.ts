@@ -59,7 +59,7 @@ export class CrossReferenceValidator {
               refs.push(item);
             }
           });
-        } else {
+        } else if (typeof value === 'object' && value !== null) {
           this.extractReferencesRecursive(value, refs);
         }
       });
@@ -119,11 +119,17 @@ export class CrossReferenceValidator {
   }
 
   private parseTargetSheet(reference: string): string | null {
+    if (typeof reference !== 'string') {
+      return null;
+    }
     const match = reference.match(/\/([^\/]+)$/);
     return match ? match[1] : null;
   }
 
   private parseDetailNumber(reference: string): string | null {
+    if (typeof reference !== 'string') {
+      return null;
+    }
     const match = reference.match(/^(\d+|[A-Z])\//);
     return match ? match[1] : null;
   }

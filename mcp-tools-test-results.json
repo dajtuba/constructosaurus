@@ -1,0 +1,217 @@
+{
+  "database_tools": {
+    "list_sheets": [
+      {
+        "name": "S2.1",
+        "page_number": 33,
+        "sheet_type": "floor_framing",
+        "image_path": "data/vision-temp/page-33-33.png",
+        "member_count": 27
+      }
+    ],
+    "query_member": {
+      "designation": "left_joists_0",
+      "shell_set_spec": "14 TJI 560 @ 16 OC",
+      "shell_set_sheet": "S2.1",
+      "shell_set_location": "left",
+      "structural_spec": "",
+      "structural_page": 0,
+      "forteweb_spec": "",
+      "forteweb_page": 0,
+      "has_conflict": false,
+      "member_type": "joists"
+    },
+    "find_conflicts": [
+      {
+        "id": "conflict-1",
+        "designation": "left_joists_0",
+        "conflict_type": "spec_mismatch",
+        "shell_set_value": "14 TJI 560 @ 16 OC",
+        "forteweb_value": "2x10 HF No.2 @ 16 OC",
+        "severity": "high"
+      }
+    ],
+    "get_material_takeoff": {
+      "14 TJI 560 @ 16 OC": {
+        "quantity": 3,
+        "unit": "EA",
+        "locations": [
+          "left",
+          "center",
+          "right"
+        ]
+      },
+      "5 1/8 x 18 GLB": {
+        "quantity": 3,
+        "unit": "LF",
+        "locations": [
+          "left",
+          "center",
+          "right"
+        ]
+      },
+      "3 1/2 x 14 LVL": {
+        "quantity": 3,
+        "unit": "LF",
+        "locations": [
+          "left",
+          "center",
+          "right"
+        ]
+      },
+      "2x14 PT": {
+        "quantity": 3,
+        "unit": "LF",
+        "locations": [
+          "left",
+          "center",
+          "right"
+        ]
+      },
+      "2x12": {
+        "quantity": 3,
+        "unit": "LF",
+        "locations": [
+          "left",
+          "center",
+          "right"
+        ]
+      },
+      "6x6 PT": {
+        "quantity": 2,
+        "unit": "LF",
+        "locations": [
+          "left",
+          "center"
+        ]
+      },
+      "3/S3.0": {
+        "quantity": 3,
+        "unit": "LF",
+        "locations": [
+          "left",
+          "center",
+          "right"
+        ]
+      },
+      "4/S3.0": {
+        "quantity": 3,
+        "unit": "LF",
+        "locations": [
+          "left",
+          "center",
+          "right"
+        ]
+      },
+      "5/S3.0": {
+        "quantity": 3,
+        "unit": "LF",
+        "locations": [
+          "left",
+          "center",
+          "right"
+        ]
+      },
+      "4x4 PSL": {
+        "quantity": 1,
+        "unit": "LF",
+        "locations": [
+          "right"
+        ]
+      }
+    },
+    "search_documents": [
+      {
+        "designation": "left_joists_0",
+        "shell_set_spec": "14 TJI 560 @ 16 OC",
+        "shell_set_sheet": "S2.1",
+        "shell_set_location": "left",
+        "structural_spec": "",
+        "structural_page": 0,
+        "forteweb_spec": "",
+        "forteweb_page": 0,
+        "has_conflict": false,
+        "member_type": "joists"
+      },
+      {
+        "designation": "center_joists_9",
+        "shell_set_spec": "14 TJI 560 @ 16 OC",
+        "shell_set_sheet": "S2.1",
+        "shell_set_location": "center",
+        "structural_spec": "",
+        "structural_page": 0,
+        "forteweb_spec": "",
+        "forteweb_page": 0,
+        "has_conflict": false,
+        "member_type": "joists"
+      },
+      {
+        "designation": "right_joists_18",
+        "shell_set_spec": "14 TJI 560 @ 16 OC",
+        "shell_set_sheet": "S2.1",
+        "shell_set_location": "right",
+        "structural_spec": "",
+        "structural_page": 0,
+        "forteweb_spec": "",
+        "forteweb_page": 0,
+        "has_conflict": false,
+        "member_type": "joists"
+      }
+    ]
+  },
+  "vision_tools": {
+    "analyze_drawing": {
+      "joists_found": 0,
+      "beams_found": 1,
+      "columns_found": 1,
+      "schedules_found": 1,
+      "sample_beam": "W18x106",
+      "confidence": 0.85
+    },
+    "analyze_zone": {
+      "zone": "left",
+      "members_in_zone": 9,
+      "specifications": [
+        "14 TJI 560 @ 16 OC",
+        "5 1/8 x 18 GLB",
+        "3 1/2 x 14 LVL",
+        "2x14 PT",
+        "2x12",
+        "6x6 PT",
+        "3/S3.0",
+        "4/S3.0",
+        "5/S3.0"
+      ],
+      "member_types": [
+        "joists",
+        "beams",
+        "plates",
+        "columns",
+        "sections"
+      ],
+      "confidence": 0.8
+    },
+    "extract_callout": {
+      "location": "left bay",
+      "callout": "14 TJI 560 @ 16 OC",
+      "confidence": 0.75,
+      "alternatives": [
+        "5 1/8 x 18 GLB",
+        "3 1/2 x 14 LVL"
+      ]
+    },
+    "verify_spec": {
+      "expected": "TJI 560",
+      "found": "14 TJI 560 @ 16 OC",
+      "matches": true,
+      "confidence": 0.85,
+      "location": "left zone"
+    }
+  },
+  "summary": {
+    "database_tools_working": true,
+    "vision_tools_working": true,
+    "all_tools_working": true
+  },
+  "timestamp": "2026-02-22T23:39:59.972Z"
+}

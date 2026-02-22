@@ -1,0 +1,160 @@
+{
+  "summary": {
+    "passed": 7,
+    "total": 16,
+    "passRate": "43.8"
+  },
+  "results": [
+    {
+      "phase": "Phase 1",
+      "test": "Valid JSON structure",
+      "passed": true,
+      "details": {
+        "zones": 3,
+        "sheet": "S2.1"
+      }
+    },
+    {
+      "phase": "Phase 1",
+      "test": "Contains real specs (no placeholders)",
+      "passed": true,
+      "details": {
+        "placeholderFound": "",
+        "sampleSpecs": [
+          "14 TJI 560 @ 16 OC"
+        ]
+      }
+    },
+    {
+      "phase": "Phase 1",
+      "test": "Contains expected joist specs",
+      "passed": true,
+      "details": {
+        "leftZoneJoists": [
+          "14 TJI 560 @ 16 OC"
+        ]
+      }
+    },
+    {
+      "phase": "Phase 2",
+      "test": "Database initialization",
+      "passed": true,
+      "details": {
+        "dbPath": "data/test-member-db"
+      }
+    },
+    {
+      "phase": "Phase 2",
+      "test": "Insert zone extraction data",
+      "passed": true,
+      "details": {
+        "insertCount": 27,
+        "sampleDesignation": "left_joists_0"
+      }
+    },
+    {
+      "phase": "Phase 2",
+      "test": "Query data integrity",
+      "passed": false,
+      "details": {
+        "found": false
+      }
+    },
+    {
+      "phase": "Phase 2",
+      "test": "Sheet-specific queries",
+      "passed": false,
+      "details": {
+        "sheetMemberCount": 0
+      }
+    },
+    {
+      "phase": "Phase 3",
+      "test": "MCP Tool: list_sheets",
+      "passed": false,
+      "details": {
+        "resultType": "object",
+        "resultLength": 0
+      }
+    },
+    {
+      "phase": "Phase 3",
+      "test": "MCP Tool: query_member",
+      "passed": false,
+      "details": {
+        "resultType": "object",
+        "resultLength": "N/A",
+        "sample": null
+      }
+    },
+    {
+      "phase": "Phase 3",
+      "test": "MCP Tool: find_conflicts",
+      "passed": false,
+      "details": {
+        "resultType": "object",
+        "resultLength": 0
+      }
+    },
+    {
+      "phase": "Phase 3",
+      "test": "MCP Tool: get_material_takeoff",
+      "passed": false,
+      "details": {
+        "resultType": "object",
+        "resultLength": "N/A",
+        "sample": null
+      }
+    },
+    {
+      "phase": "Phase 3",
+      "test": "MCP Tool: search_documents",
+      "passed": false,
+      "details": {
+        "resultType": "object",
+        "resultLength": 0
+      }
+    },
+    {
+      "phase": "Phase 4",
+      "test": "Vision Tool: analyze_drawing",
+      "passed": true,
+      "details": {
+        "confidence": 0.85,
+        "analysisLength": 33,
+        "sample": "Found 0 joist types, 1 beam types..."
+      }
+    },
+    {
+      "phase": "Phase 4",
+      "test": "Vision Tool: analyze_zone",
+      "passed": true,
+      "details": {
+        "confidence": 0.8,
+        "analysisLength": 53,
+        "sample": "Zone analysis: Found structural elements in left zone..."
+      }
+    },
+    {
+      "phase": "Phase 4",
+      "test": "Vision Tool: extract_callout",
+      "details": {
+        "confidence": 0.75,
+        "analysisLength": 0,
+        "sample": "undefined..."
+      },
+      "error": "Generic or template response"
+    },
+    {
+      "phase": "Phase 4",
+      "test": "Vision Tool: verify_spec",
+      "details": {
+        "confidence": 0.78,
+        "analysisLength": 0,
+        "sample": "undefined..."
+      },
+      "error": "Generic or template response"
+    }
+  ],
+  "timestamp": "2026-02-22T23:32:00.844Z"
+}

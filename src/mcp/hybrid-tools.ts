@@ -1,4 +1,5 @@
 import { HybridSearchEngine } from "../search/hybrid-search-engine";
+import { EmbeddingService } from "../embeddings/embedding-service";
 import { VisionMCPTools } from "./vision-tools";
 import * as fs from "fs";
 import * as path from "path";
@@ -36,10 +37,19 @@ export class HybridMCPTools {
   private visionTools: VisionMCPTools;
   private cache = new Map<string, CacheEntry>();
   private cacheTimeout = 5 * 60 * 1000; // 5 minutes
+  private initialized = false;
 
   constructor(dataDir: string) {
-    this.searchEngine = new HybridSearchEngine(dataDir, new (require("../embeddings/embedding-service").EmbeddingService)());
+    const embedService = new EmbeddingService();
+    this.searchEngine = new HybridSearchEngine(dataDir, embedService);
     this.visionTools = new VisionMCPTools();
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (!this.initialized) {
+      await this.searchEngine.initialize();
+      this.initialized = true;
+    }
   }
 
   private getCached(key: string): any | null {
@@ -65,6 +75,8 @@ export class HybridMCPTools {
     verified: boolean;
     discrepancies: string[];
   }> {
+    await this.ensureInitialized();
+    
     const cacheKey = `member_verified_${designation}`;
     const cached = this.getCached(cacheKey);
     if (cached) return cached;
@@ -126,6 +138,8 @@ export class HybridMCPTools {
     }>;
     overall_confidence: number;
   }> {
+    await this.ensureInitialized();
+    
     const cacheKey = `inventory_verified_${sheet}`;
     const cached = this.getCached(cacheKey);
     if (cached) return cached;
@@ -185,14 +199,17 @@ export class HybridMCPTools {
     }>;
     false_positives: string[];
   }> {
+    await this.ensureInitialized();
+    
     const cacheKey = "conflicts_verified";
     const cached = this.getCached(cacheKey);
     if (cached) return cached;
 
     // Get conflicts from database
-    const dbResults = await this.searchEngine.search("conflict designation spec", {
-      limit: 10,
-      discipline: "Structural"
+    const dbResults = await this.searchEngine.search({
+      query: "conflict designation spec",
+      discipline: "Structural",
+      top_k: 10
     });
 
     const dbConflicts = this.extractConflictsFromResults(dbResults);

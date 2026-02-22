@@ -12,6 +12,7 @@ import { MaterialsExtractor } from "./extraction/materials-extractor";
 import { QueryCache } from "./cache/query-cache";
 import { ScheduleStore } from "./storage/schedule-store";
 import { ScheduleQueryService } from "./services/schedule-query-service";
+import { HybridMCPTools } from "./mcp/hybrid-tools";
 import * as path from "path";
 
 // No dotenv needed - env vars come from MCP config
@@ -25,6 +26,7 @@ class ConstructosaurusServer {
   private materialsExtractor: MaterialsExtractor;
   private cache: QueryCache;
   private scheduleQueryService?: ScheduleQueryService;
+  private hybridTools: HybridMCPTools;
 
   constructor() {
     this.server = new Server(
@@ -72,6 +74,8 @@ class ConstructosaurusServer {
       parseInt(process.env.CACHE_MAX_SIZE || "1000"),
       parseInt(process.env.CACHE_TTL_SECONDS || "3600") * 1000
     );
+
+    this.hybridTools = new HybridMCPTools(dbPath);
 
     this.setupHandlers();
   }
@@ -299,6 +303,42 @@ class ConstructosaurusServer {
             required: ["text"],
           },
         },
+        {
+          name: "get_member_verified",
+          description: "🔄 HYBRID: Get member data from database then verify with live vision analysis. Combines speed of DB lookup with accuracy of vision verification. Caches results for 5 minutes.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              designation: {
+                type: "string",
+                description: "Member designation (e.g., 'D1', 'D2', 'B1')",
+              },
+            },
+            required: ["designation"],
+          },
+        },
+        {
+          name: "get_inventory_verified",
+          description: "🔄 HYBRID: Get material inventory from database then spot-check 3 random items with vision analysis. Provides confidence score for inventory accuracy.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              sheet: {
+                type: "string",
+                description: "Sheet name (e.g., 'S2.1', 'S2.2')",
+              },
+            },
+            required: ["sheet"],
+          },
+        },
+        {
+          name: "find_conflicts_verified",
+          description: "🔄 HYBRID: Find specification conflicts from database then verify each with image proof. Eliminates false positives by checking actual drawings.",
+          inputSchema: {
+            type: "object",
+            properties: {},
+          },
+        },
       ],
     }));
 
@@ -331,6 +371,12 @@ class ConstructosaurusServer {
             return await this.handleListSheets(args);
           case "search_documents":
             return await this.handleSearchDocuments(args);
+          case "get_member_verified":
+            return await this.handleGetMemberVerified(args);
+          case "get_inventory_verified":
+            return await this.handleGetInventoryVerified(args);
+          case "find_conflicts_verified":
+            return await this.handleFindConflictsVerified(args);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
@@ -858,6 +904,89 @@ class ConstructosaurusServer {
       content: [{
         type: "text",
         text: JSON.stringify(searchResults, null, 2),
+      }],
+    };
+  }
+
+  private async handleGetMemberVerified(args: any) {
+    const result = await this.hybridTools.getMemberVerified(args.designation);
+    
+    let output = `🔄 **Member Verification: ${args.designation}**\n\n`;
+    
+    if (!result.db_data) {
+      output += `❌ Member ${args.designation} not found in database`;
+    } else {
+      output += `**Database Data:**\n`;
+      output += `- Sheet: ${result.db_data.shell_set?.sheet || 'Unknown'}\n`;
+      output += `- Spec: ${result.db_data.shell_set?.spec || 'Unknown'}\n`;
+      output += `- Conflict: ${result.db_data.conflict ? '⚠️ Yes' : '✅ No'}\n\n`;
+
+      output += `**Vision Verification:**\n`;
+      output += `- Status: ${result.verified ? '✅ VERIFIED' : '❌ DISCREPANCY'}\n`;
+      
+      if (result.discrepancies.length > 0) {
+        output += `- Issues: ${result.discrepancies.join(', ')}\n`;
+      }
+    }
+
+    return {
+      content: [{
+        type: "text",
+        text: output,
+      }],
+    };
+  }
+
+  private async handleGetInventoryVerified(args: any) {
+    const result = await this.hybridTools.getInventoryVerified(args.sheet);
+    
+    let output = `🔄 **Inventory Verification: ${args.sheet}**\n\n`;
+    
+    output += `**Database Inventory:** ${result.db_inventory.length} items\n`;
+    result.db_inventory.slice(0, 5).forEach(item => {
+      output += `- ${item.quantity} ${item.unit} ${item.spec}\n`;
+    });
+
+    output += `\n**Spot Checks:** ${result.spot_checks.length} items verified\n`;
+    result.spot_checks.forEach(check => {
+      const status = check.verified ? '✅' : '❌';
+      output += `${status} ${check.spec}: DB=${check.db_quantity}\n`;
+    });
+
+    output += `\n**Overall Confidence:** ${(result.overall_confidence * 100).toFixed(0)}%\n`;
+
+    return {
+      content: [{
+        type: "text",
+        text: output,
+      }],
+    };
+  }
+
+  private async handleFindConflictsVerified(args: any) {
+    const result = await this.hybridTools.findConflictsVerified();
+    
+    let output = `🔄 **Conflicts Verification**\n\n`;
+    
+    output += `**Database Conflicts:** ${result.db_conflicts.length}\n`;
+    output += `**Vision Verified:** ${result.verified_conflicts.length}\n`;
+    output += `**False Positives:** ${result.false_positives.length}\n\n`;
+
+    if (result.verified_conflicts.length > 0) {
+      output += `**Confirmed Conflicts:**\n`;
+      result.verified_conflicts.forEach(conflict => {
+        output += `- ${conflict.designation}: "${conflict.shell_set_spec}" vs "${conflict.forteweb_spec}"\n`;
+      });
+    }
+
+    if (result.false_positives.length > 0) {
+      output += `\n**False Positives:** ${result.false_positives.join(', ')}\n`;
+    }
+
+    return {
+      content: [{
+        type: "text",
+        text: output,
       }],
     };
   }

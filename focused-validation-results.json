@@ -1,0 +1,208 @@
+{
+  "summary": {
+    "passed": 13,
+    "total": 13,
+    "passRate": "100.0"
+  },
+  "results": [
+    {
+      "phase": "Zone Extraction",
+      "test": "Valid JSON structure",
+      "passed": true,
+      "details": {
+        "zones": 3,
+        "sheet": "S2.1"
+      }
+    },
+    {
+      "phase": "Zone Extraction",
+      "test": "Contains real specifications",
+      "passed": true,
+      "details": {
+        "realSpecCount": 27,
+        "sampleSpecs": [
+          "14 TJI 560 @ 16 OC"
+        ]
+      }
+    },
+    {
+      "phase": "Database",
+      "test": "Initialization",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "phase": "Database",
+      "test": "Data insertion",
+      "passed": true,
+      "details": {
+        "insertCount": 27
+      }
+    },
+    {
+      "phase": "Database",
+      "test": "Member query",
+      "passed": true,
+      "details": {
+        "found": true,
+        "spec": "14 TJI 560 @ 16 OC"
+      }
+    },
+    {
+      "phase": "Database",
+      "test": "Sheet query",
+      "passed": true,
+      "details": {
+        "count": 27
+      }
+    },
+    {
+      "phase": "MCP Tools",
+      "test": "list_sheets",
+      "passed": true,
+      "details": {
+        "resultType": "object",
+        "hasData": true,
+        "sample": {
+          "name": "S2.1",
+          "page_number": 33,
+          "sheet_type": "floor_framing",
+          "image_path": "data/vision-temp/page-33-33.png",
+          "member_count": 27
+        }
+      }
+    },
+    {
+      "phase": "MCP Tools",
+      "test": "query_member",
+      "passed": true,
+      "details": {
+        "resultType": "object",
+        "hasData": true,
+        "sample": {
+          "designation": "left_joists_0",
+          "shell_set_spec": "14 TJI 560 @ 16 OC",
+          "shell_set_sheet": "S2.1",
+          "shell_set_location": "left",
+          "structural_spec": "",
+          "structural_page": 0,
+          "forteweb_spec": "",
+          "forteweb_page": 0,
+          "has_conflict": false,
+          "member_type": "joists"
+        }
+      }
+    },
+    {
+      "phase": "MCP Tools",
+      "test": "get_material_takeoff",
+      "passed": true,
+      "details": {
+        "resultType": "object",
+        "hasData": true,
+        "sample": {
+          "14 TJI 560 @ 16 OC": {
+            "quantity": 1,
+            "unit": "EA",
+            "designation": "right_joists_18"
+          },
+          "5 1/8 x 18 GLB": {
+            "quantity": 1,
+            "unit": "LF",
+            "designation": "right_beams_19"
+          },
+          "3 1/2 x 14 LVL": {
+            "quantity": 1,
+            "unit": "LF",
+            "designation": "right_beams_20"
+          },
+          "2x14 PT": {
+            "quantity": 1,
+            "unit": "LF",
+            "designation": "right_plates_21"
+          },
+          "2x12": {
+            "quantity": 1,
+            "unit": "LF",
+            "designation": "right_plates_22"
+          },
+          "6x6 PT": {
+            "quantity": 1,
+            "unit": "LF",
+            "designation": "center_columns_14"
+          },
+          "3/S3.0": {
+            "quantity": 1,
+            "unit": "LF",
+            "designation": "right_sections_24"
+          },
+          "4/S3.0": {
+            "quantity": 1,
+            "unit": "LF",
+            "designation": "right_sections_25"
+          },
+          "5/S3.0": {
+            "quantity": 1,
+            "unit": "LF",
+            "designation": "right_sections_26"
+          },
+          "4x4 PSL": {
+            "quantity": 1,
+            "unit": "LF",
+            "designation": "right_columns_23"
+          }
+        }
+      }
+    },
+    {
+      "phase": "MCP Tools",
+      "test": "search_documents",
+      "passed": true,
+      "details": {
+        "resultType": "object",
+        "hasData": true,
+        "sample": {
+          "designation": "left_joists_0",
+          "shell_set_spec": "14 TJI 560 @ 16 OC",
+          "shell_set_sheet": "S2.1",
+          "shell_set_location": "left",
+          "structural_spec": "",
+          "structural_page": 0,
+          "forteweb_spec": "",
+          "forteweb_page": 0,
+          "has_conflict": false,
+          "member_type": "joists"
+        }
+      }
+    },
+    {
+      "phase": "Vision Analysis",
+      "test": "Analysis execution",
+      "passed": true,
+      "details": {
+        "hasResult": true
+      }
+    },
+    {
+      "phase": "Vision Analysis",
+      "test": "Found structural elements",
+      "passed": true,
+      "details": {
+        "joists": 0,
+        "beams": 1,
+        "columns": 1,
+        "total": 2
+      }
+    },
+    {
+      "phase": "Vision Analysis",
+      "test": "Extracted schedules",
+      "passed": true,
+      "details": {
+        "scheduleCount": 1,
+        "sampleSchedule": "unknown"
+      }
+    }
+  ],
+  "timestamp": "2026-02-22T23:36:05.279Z"
+}
