@@ -1,0 +1,33 @@
+{
+  "member": "D1",
+  "shell_set": {
+    "sheet": "S2.1",
+    "page": 33,
+    "spec": "specification found",
+    "location": {
+      "x": 150,
+      "y": 800
+    }
+  },
+  "structural_calc": {
+    "page": 5,
+    "designation": "D1 @ 16\" OC",
+    "loads": [
+      "1050 LB",
+      "607 LB"
+    ]
+  },
+  "forteweb": {
+    "page": 109,
+    "definition": "2 x 10 HF No.2 @ 16\" OC",
+    "status": "PASSED"
+  },
+  "detail_refs": [
+    "3/S3.0",
+    "4/S3.0"
+  ],
+  "conflict": {
+    "detected": false,
+    "issue": ""
+  }
+}

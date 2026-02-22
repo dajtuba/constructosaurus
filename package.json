@@ -31,6 +31,7 @@
     "test-quantity": "ts-node src/tools/test-quantity-calculator.ts",
     "test-vision": "ts-node src/tools/test-vision-phase2.ts",
     "phase2-poc": "ts-node src/tools/phase2-proof-of-concept.ts",
+    "tracer-bullet": "ts-node src/tools/tracer-bullet-demo.ts",
     "test": "jest",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
