@@ -147,17 +147,27 @@ export class MemberDatabase {
 
   // Get all conflicts
   async getConflicts(): Promise<ConflictRecord[]> {
-    const results = await this.conflictsTable.search(new Array(384).fill(0)).execute();
-    return results as unknown as ConflictRecord[];
+    try {
+      const results = await this.conflictsTable.search(new Array(384).fill(0)).execute();
+      return results as unknown as ConflictRecord[];
+    } catch (error) {
+      console.warn('Vector search failed:', error);
+      return [];
+    }
   }
 
   // Get sheet info
   async getSheet(name: string): Promise<SheetRecord | null> {
-    const results = await this.sheetsTable
-      .search(new Array(384).fill(0))
-      .filter(`name = '${name}'`)
-      .limit(1)
-      .execute();
-    return results.length > 0 ? results[0] as unknown as SheetRecord : null;
+    try {
+      const results = await this.sheetsTable
+        .search(new Array(384).fill(0))
+        .filter(`name = '${name}'`)
+        .limit(1)
+        .execute();
+      return results.length > 0 ? results[0] as unknown as SheetRecord : null;
+    } catch (error) {
+      console.warn('Vector search failed:', error);
+      return null;
+    }
   }
 }

@@ -29,25 +29,30 @@ const ZONES: Zone[] = [
 
 function buildZonePrompt(zone: Zone, memberType: string): string {
   const prompts = {
-    joists: `Focus on the ${zone.name} third of this floor plan. Extract floor joist specifications.
-Look for: "TJI 560", "TJI 360", "D1", "D2", etc. with spacing like "@ 16\" OC".
-Return JSON array: ["14\" TJI 560 @ 16\" OC", "D1 @ 16\" OC"]`,
+    joists: `Focus on the ${zone.name} third of this floor plan. Find floor joist specifications.
+Look for: TJI with numbers, D1/D2/D3 designations, spacing like "@ 16\" OC".
+Return ONLY a valid JSON array like: ["14 TJI 560 @ 16 OC", "D1 @ 16 OC"]
+If none found, return: []`,
 
-    beams: `Focus on the ${zone.name} third of this floor plan. Extract beam specifications.
-Look for: "GLB", "LVL", "PSL" with dimensions like "5 1/8\" x 18\"".
-Return JSON array: ["5 1/8\" x 18\" GLB", "3 1/2\" x 14\" LVL"]`,
+    beams: `Focus on the ${zone.name} third of this floor plan. Find beam specifications.
+Look for: GLB, LVL, PSL with dimensions.
+Return ONLY a valid JSON array like: ["5 1/8 x 18 GLB", "3 1/2 x 14 LVL"]
+If none found, return: []`,
 
-    plates: `Focus on the ${zone.name} third of this floor plan. Extract plate specifications.
-Look for: "2x14 (PT)", "2x12", sill plates, top plates.
-Return JSON array: ["2x14 (PT)", "2x12"]`,
+    plates: `Focus on the ${zone.name} third of this floor plan. Find plate specifications.
+Look for: 2x14, 2x12, PT (pressure treated), sill plates.
+Return ONLY a valid JSON array like: ["2x14 PT", "2x12"]
+If none found, return: []`,
 
-    columns: `Focus on the ${zone.name} third of this floor plan. Extract column specifications.
-Look for: "6x6", "4x4", "PSL", column callouts.
-Return JSON array: ["6x6 PT", "3 1/2\" x 5 1/2\" PSL"]`,
+    columns: `Focus on the ${zone.name} third of this floor plan. Find column specifications.
+Look for: 6x6, 4x4, PSL columns.
+Return ONLY a valid JSON array like: ["6x6 PT", "4x4 PSL"]
+If none found, return: []`,
 
-    sections: `Focus on the ${zone.name} third of this floor plan. Extract section reference markers.
-Look for: circles with triangles containing text like "3/S3.0", "4/S3.0", "5/S3.0".
-Return JSON array: ["3/S3.0", "4/S3.0", "5/S3.0"]`
+    sections: `Focus on the ${zone.name} third of this floor plan. Find section reference markers.
+Look for: circles with triangles containing text like 3/S3.0, 4/S3.0, 5/S3.0.
+Return ONLY a valid JSON array like: ["3/S3.0", "4/S3.0", "5/S3.0"]
+If none found, return: []`
   };
 
   return prompts[memberType as keyof typeof prompts] || '';
@@ -70,12 +75,24 @@ async function extractFromZone(imagePath: string, zone: Zone, memberType: string
   });
   
   try {
+    // Try to find JSON array in response
     const jsonMatch = response.response.match(/\[[\s\S]*?\]/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const cleanJson = jsonMatch[0]
+        .replace(/'/g, '"')  // Replace single quotes with double quotes
+        .replace(/([^"\\])\n/g, '$1')  // Remove newlines not in strings
+        .replace(/,\s*]/g, ']');  // Remove trailing commas
+      return JSON.parse(cleanJson);
     }
+    
+    // Fallback: look for items in quotes
+    const quotedItems = response.response.match(/"([^"]+)"/g);
+    if (quotedItems) {
+      return quotedItems.map((item: string) => item.replace(/"/g, ''));
+    }
+    
   } catch (e) {
-    console.error(`Failed to parse ${memberType} for ${zone.name}:`, e);
+    console.error(`Failed to parse ${memberType} for ${zone.name}:`, response.response.substring(0, 100));
   }
   
   return [];
