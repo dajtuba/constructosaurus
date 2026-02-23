@@ -12,6 +12,13 @@ import { ScheduleStore } from "../storage/schedule-store";
 import { Sheet, Schedule } from "../types";
 import * as crypto from "crypto";
 import * as path from "path";
+import * as fs from "fs";
+
+interface ProgressState {
+  file: string;
+  completedPages: number[];
+  lastUpdated: string;
+}
 
 export interface ProcessingResult {
   classification: any;
@@ -36,6 +43,7 @@ export class IntelligentDocumentProcessor {
   private imageConverter: PDFImageConverter;
   private scheduleStore: ScheduleStore;
   private enableVision: boolean;
+  private progressDir: string;
 
   constructor(
     embedService: EmbeddingService, 
@@ -52,6 +60,10 @@ export class IntelligentDocumentProcessor {
     this.structuralParser = new StructuralTableParser();
     this.imageConverter = new PDFImageConverter();
     this.scheduleStore = new ScheduleStore(scheduleStorePath);
+    this.progressDir = path.join(path.dirname(scheduleStorePath), 'progress');
+    if (!fs.existsSync(this.progressDir)) {
+      fs.mkdirSync(this.progressDir, { recursive: true });
+    }
     
     // Enable vision based on config
     this.enableVision = !!visionConfig;
@@ -65,6 +77,29 @@ export class IntelligentDocumentProcessor {
         );
       }
     }
+  }
+
+  private progressFile(pdfPath: string): string {
+    const name = path.basename(pdfPath, '.pdf').replace(/[^a-zA-Z0-9]/g, '_');
+    return path.join(this.progressDir, `${name}.json`);
+  }
+
+  private loadProgress(pdfPath: string): Set<number> {
+    const file = this.progressFile(pdfPath);
+    if (fs.existsSync(file)) {
+      const state: ProgressState = JSON.parse(fs.readFileSync(file, 'utf-8'));
+      return new Set(state.completedPages);
+    }
+    return new Set();
+  }
+
+  private saveProgress(pdfPath: string, completedPages: Set<number>): void {
+    const state: ProgressState = {
+      file: path.basename(pdfPath),
+      completedPages: Array.from(completedPages).sort((a, b) => a - b),
+      lastUpdated: new Date().toISOString()
+    };
+    fs.writeFileSync(this.progressFile(pdfPath), JSON.stringify(state, null, 2));
   }
 
   async processDocument(pdfPath: string): Promise<ProcessingResult> {
@@ -294,11 +329,17 @@ export class IntelligentDocumentProcessor {
       console.log(`  📄 Found ${pagesToAnalyze.length} pages with schedules: ${pagesToAnalyze.join(', ')}`);
       const pagesToAnalyzeCount = pagesToAnalyze.length;
       const imageDir = path.join(path.dirname(pdfPath), '../data/vision-temp');
+      const completedPages = this.loadProgress(pdfPath);
+      const remaining = pagesToAnalyze.filter(p => !completedPages.has(p));
+      
+      if (completedPages.size > 0) {
+        console.log(`  ⏩ Resuming: ${completedPages.size} pages done, ${remaining.length} remaining`);
+      }
       
       try {
-        for (let i = 0; i < pagesToAnalyzeCount; i++) {
-          const pageNum = pagesToAnalyze[i];
-          console.log(`    Analyzing page ${pageNum} (${i + 1}/${pagesToAnalyzeCount})...`);
+        for (let i = 0; i < remaining.length; i++) {
+          const pageNum = remaining[i];
+          console.log(`    Analyzing page ${pageNum} (${completedPages.size + i + 1}/${pagesToAnalyzeCount})...`);
           const imagePath = await this.imageConverter.convertPageToImage(
             pdfPath,
             pageNum,
@@ -439,6 +480,10 @@ export class IntelligentDocumentProcessor {
           
           // Store item counts
           visionItemCountTotal += visionResult.itemCounts.length;
+          
+          // Save progress after each page
+          completedPages.add(pageNum);
+          this.saveProgress(pdfPath, completedPages);
         }
         
         console.log(`  ✅ Vision extracted ${visionScheduleCount} schedule entries, ${visionItemCountTotal} item counts`);
