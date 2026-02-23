@@ -21,8 +21,10 @@ export class CrossReferenceValidator {
       const references = this.extractReferences(sheetData);
       
       for (const ref of references) {
-        const validation = this.validateReference(sheetName, ref);
-        results.push(validation);
+        if (typeof ref === 'string') {
+          const validation = this.validateReference(sheetName, ref);
+          results.push(validation);
+        }
       }
     }
     
@@ -51,12 +53,19 @@ export class CrossReferenceValidator {
     } else if (typeof obj === 'object' && obj !== null) {
       // Look for section references in any field
       Object.values(obj).forEach(value => {
-        if (typeof value === 'string' && this.isSectionReference(value)) {
-          refs.push(value);
+        if (typeof value === 'string') {
+          // Extract section references from text like "Per 10/S4.0"
+          const sectionMatches = value.match(/\b(\d+\/S\d+\.\d+)\b/g);
+          if (sectionMatches) {
+            refs.push(...sectionMatches);
+          }
         } else if (Array.isArray(value)) {
           value.forEach(item => {
-            if (typeof item === 'string' && this.isSectionReference(item)) {
-              refs.push(item);
+            if (typeof item === 'string') {
+              const sectionMatches = item.match(/\b(\d+\/S\d+\.\d+)\b/g);
+              if (sectionMatches) {
+                refs.push(...sectionMatches);
+              }
             }
           });
         } else if (typeof value === 'object' && value !== null) {

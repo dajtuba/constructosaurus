@@ -73,15 +73,15 @@ export class DatabasePopulator {
       // Add joists
       for (const joist of zone.joists || []) {
         await this.addMemberRecord({
-          designation: this.extractDesignation(joist) || `${sheet.sheet}-${zone.zone}-joist`,
-          shell_set_spec: joist,
+          designation: this.extractDesignation(joist) || `${sheet.sheet}-${zone.zone}-joist-${Math.random().toString(36).substr(2, 9)}`,
+          shell_set_spec: typeof joist === 'string' ? joist : JSON.stringify(joist),
           shell_set_sheet: sheet.sheet,
           shell_set_location: zone.zone,
           member_type: 'joist',
-          structural_spec: null,
-          structural_page: null,
-          forteweb_spec: null,
-          forteweb_page: null,
+          structural_spec: '',
+          structural_page: 0,
+          forteweb_spec: '',
+          forteweb_page: 0,
           has_conflict: false
         });
       }
@@ -89,15 +89,15 @@ export class DatabasePopulator {
       // Add beams
       for (const beam of zone.beams || []) {
         await this.addMemberRecord({
-          designation: this.extractDesignation(beam) || `${sheet.sheet}-${zone.zone}-beam`,
-          shell_set_spec: beam,
+          designation: this.extractDesignation(beam) || `${sheet.sheet}-${zone.zone}-beam-${Math.random().toString(36).substr(2, 9)}`,
+          shell_set_spec: typeof beam === 'string' ? beam : JSON.stringify(beam),
           shell_set_sheet: sheet.sheet,
           shell_set_location: zone.zone,
           member_type: 'beam',
-          structural_spec: null,
-          structural_page: null,
-          forteweb_spec: null,
-          forteweb_page: null,
+          structural_spec: '',
+          structural_page: 0,
+          forteweb_spec: '',
+          forteweb_page: 0,
           has_conflict: false
         });
       }
@@ -106,15 +106,15 @@ export class DatabasePopulator {
       for (const memberType of ['plates', 'columns']) {
         for (const member of zone[memberType] || []) {
           await this.addMemberRecord({
-            designation: this.extractDesignation(member) || `${sheet.sheet}-${zone.zone}-${memberType}`,
-            shell_set_spec: member,
+            designation: this.extractDesignation(member) || `${sheet.sheet}-${zone.zone}-${memberType}-${Math.random().toString(36).substr(2, 9)}`,
+            shell_set_spec: typeof member === 'string' ? member : JSON.stringify(member),
             shell_set_sheet: sheet.sheet,
             shell_set_location: zone.zone,
             member_type: memberType.slice(0, -1), // Remove 's'
-            structural_spec: null,
-            structural_page: null,
-            forteweb_spec: null,
-            forteweb_page: null,
+            structural_spec: '',
+            structural_page: 0,
+            forteweb_spec: '',
+            forteweb_page: 0,
             has_conflict: false
           });
         }
@@ -138,10 +138,10 @@ export class DatabasePopulator {
           shell_set_sheet: sheet.sheet,
           shell_set_location: scheduleType,
           member_type: 'schedule_entry',
-          structural_spec: null,
-          structural_page: null,
-          forteweb_spec: null,
-          forteweb_page: null,
+          structural_spec: '',
+          structural_page: 0,
+          forteweb_spec: '',
+          forteweb_page: 0,
           has_conflict: false
         });
       }
@@ -158,10 +158,10 @@ export class DatabasePopulator {
         shell_set_sheet: sheet.sheet,
         shell_set_location: `detail-${detail.number || detail.id}`,
         member_type: 'detail',
-        structural_spec: null,
-        structural_page: null,
-        forteweb_spec: null,
-        forteweb_page: null,
+        structural_spec: '',
+        structural_page: 0,
+        forteweb_spec: '',
+        forteweb_page: 0,
         has_conflict: false
       });
     }
@@ -171,7 +171,10 @@ export class DatabasePopulator {
     await this.db.addMember(member);
   }
 
-  private extractDesignation(spec: string): string | null {
+  private extractDesignation(spec: any): string | null {
+    if (typeof spec !== 'string') {
+      return null;
+    }
     // Look for D1, D2, D3, etc. in the spec
     const match = spec.match(/\b(D\d+)\b/);
     return match ? match[1] : null;

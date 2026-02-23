@@ -1,0 +1,228 @@
+{
+  "timestamp": "2026-02-23T00:17:28.531Z",
+  "sheets_processed": 4,
+  "cross_references": {
+    "total": 5,
+    "valid": 5,
+    "broken": 0,
+    "details": [
+      {
+        "source_sheet": "S2.1",
+        "reference": "3/S3.0",
+        "target_sheet": "S3.0",
+        "found": true,
+        "details": {
+          "number": "3",
+          "title": "Beam Connection Detail",
+          "references": []
+        }
+      },
+      {
+        "source_sheet": "S2.1",
+        "reference": "4/S3.0",
+        "target_sheet": "S3.0",
+        "found": true,
+        "details": {
+          "number": "4",
+          "title": "Joist Hanger Detail",
+          "references": []
+        }
+      },
+      {
+        "source_sheet": "S2.1",
+        "reference": "5/S3.0",
+        "target_sheet": "S3.0",
+        "found": true,
+        "details": {
+          "number": "5",
+          "title": "Column Base Detail",
+          "references": []
+        }
+      },
+      {
+        "source_sheet": "S2.2",
+        "reference": "6/S3.0",
+        "target_sheet": "S3.0",
+        "found": true,
+        "details": {
+          "number": "6",
+          "title": "Ridge Beam Connection",
+          "references": []
+        }
+      },
+      {
+        "source_sheet": "S3.0",
+        "reference": "10/S4.0",
+        "target_sheet": "S4.0",
+        "found": true
+      }
+    ]
+  },
+  "extraction_results": [
+    {
+      "sheet": "S2.1",
+      "type": "floor_framing",
+      "data": {
+        "zones": [
+          {
+            "zone": "left",
+            "joists": [
+              "14\" TJI 560 @ 16\" OC",
+              "D1 @ 16\" OC"
+            ],
+            "beams": [
+              "5 1/8\" x 18\" GLB"
+            ],
+            "plates": [
+              "2x14 PT"
+            ],
+            "columns": [
+              "6x6 PT"
+            ],
+            "sections": [
+              "3/S3.0",
+              "4/S3.0"
+            ]
+          },
+          {
+            "zone": "center",
+            "joists": [
+              "D2 @ 16\" OC"
+            ],
+            "beams": [
+              "3 1/2\" x 14\" LVL"
+            ],
+            "plates": [
+              "2x12"
+            ],
+            "columns": [],
+            "sections": [
+              "5/S3.0"
+            ]
+          },
+          {
+            "zone": "right",
+            "joists": [
+              "11 7/8\" TJI 360 @ 16\" OC"
+            ],
+            "beams": [],
+            "plates": [
+              "2x14 PT"
+            ],
+            "columns": [
+              "4x4 PSL"
+            ],
+            "sections": []
+          }
+        ]
+      },
+      "cross_references": [
+        "3/S3.0",
+        "4/S3.0",
+        "5/S3.0"
+      ]
+    },
+    {
+      "sheet": "S2.2",
+      "type": "roof_framing",
+      "data": {
+        "rafters": [
+          "2x12 @ 16\" OC",
+          "2x10 @ 24\" OC"
+        ],
+        "ridges": [
+          "5 1/8\" x 18\" GLB"
+        ],
+        "hips": [
+          "3 1/2\" x 14\" LVL"
+        ],
+        "ceiling_joists": [
+          "2x8 @ 16\" OC"
+        ],
+        "trusses": [],
+        "sections": [
+          "6/S3.0"
+        ]
+      },
+      "cross_references": [
+        "6/S3.0"
+      ]
+    },
+    {
+      "sheet": "S3.0",
+      "type": "details",
+      "data": {
+        "details": [
+          {
+            "number": "3",
+            "title": "Beam Connection Detail",
+            "references": []
+          },
+          {
+            "number": "4",
+            "title": "Joist Hanger Detail",
+            "references": []
+          },
+          {
+            "number": "5",
+            "title": "Column Base Detail",
+            "references": []
+          },
+          {
+            "number": "6",
+            "title": "Ridge Beam Connection",
+            "references": []
+          },
+          {
+            "number": "10",
+            "title": "Footing Detail Per 10/S4.0",
+            "references": []
+          }
+        ],
+        "sections": []
+      },
+      "cross_references": [
+        "10/S4.0"
+      ]
+    },
+    {
+      "sheet": "S4.0",
+      "type": "schedules",
+      "data": {
+        "beam_schedule": [
+          {
+            "mark": "B1",
+            "size": "5 1/8\" x 18\" GLB",
+            "length": "24'-6\""
+          },
+          {
+            "mark": "B2",
+            "size": "3 1/2\" x 14\" LVL",
+            "length": "18'-0\""
+          }
+        ],
+        "column_schedule": [
+          {
+            "mark": "C1",
+            "size": "6x6 PT",
+            "height": "8'-0\""
+          },
+          {
+            "mark": "C2",
+            "size": "4x4 PSL",
+            "height": "8'-0\""
+          }
+        ],
+        "footing_schedule": [
+          {
+            "mark": "F1",
+            "size": "2'-0\" x 2'-0\" x 1'-0\"",
+            "concrete": "3000 PSI"
+          }
+        ],
+        "sections": []
+      },
+      "cross_references": []
+    }
+  ]
+}
