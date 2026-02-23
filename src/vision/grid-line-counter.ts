@@ -85,7 +85,8 @@ Where:
       jsonText = jsonText
         .replace(/,\s*([}\]])/g, '$1')     // trailing commas
         .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')  // unquoted keys
-        .replace(/:\s*'([^']*)'/g, ': "$1"');  // single-quoted values
+        .replace(/:\s*'([^']*)'/g, ': "$1"')  // single-quoted values
+        .replace(/\n/g, ' ');  // newlines in strings
 
       const parsed = JSON.parse(jsonText);
       
@@ -105,9 +106,6 @@ Where:
         gridSpacing: Array.isArray(parsed.gridSpacing) ? parsed.gridSpacing : []
       };
     } catch (error) {
-      console.error('Failed to parse grid response:', error);
-      console.error('Raw response:', text.substring(0, 500));
-      
       // Fallback: try to extract grid labels with regex
       return this.extractGridsWithRegex(text);
     }
