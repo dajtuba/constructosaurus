@@ -63,53 +63,37 @@ Where:
   }
 
   private parseGridResponse(text: string): GridInfo {
-    try {
-      let jsonText = text.trim();
-      
-      // Remove markdown code blocks
-      if (jsonText.includes('```')) {
-        const matches = jsonText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-        if (matches) {
-          jsonText = matches[1];
-        }
-      }
-      
-      // Find JSON object boundaries
-      const firstBrace = jsonText.indexOf('{');
-      const lastBrace = jsonText.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1) {
-        jsonText = jsonText.substring(firstBrace, lastBrace + 1);
-      }
+    // Don't rely on JSON.parse - extract arrays directly with regex
+    // This handles all malformed JSON the LLM might produce
 
-      // Sanitize common JSON issues from LLM output
-      jsonText = jsonText
-        .replace(/,\s*([}\]])/g, '$1')     // trailing commas
-        .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')  // unquoted keys
-        .replace(/:\s*'([^']*)'/g, ': "$1"')  // single-quoted values
-        .replace(/"\s+"/g, '", "')  // missing commas between strings
-        .replace(/\n/g, ' ');  // newlines in strings
+    const extractArray = (key: string): string[] => {
+      // Match key: [...] with flexible whitespace and quotes
+      const pattern = new RegExp(`"?${key}"?\\s*:\\s*\\[([^\\]]*?)\\]`, 'i');
+      const match = text.match(pattern);
+      if (!match) return [];
+      // Pull out all quoted strings from the array content
+      const items = match[1].match(/"([^"]+)"/g);
+      return items ? items.map(s => s.replace(/"/g, '')) : [];
+    };
 
-      const parsed = JSON.parse(jsonText);
-      
-      // Validate and calculate bay count
-      const horizontalGrids = Array.isArray(parsed.horizontalGrids) ? parsed.horizontalGrids : [];
-      const verticalGrids = Array.isArray(parsed.verticalGrids) ? parsed.verticalGrids : [];
-      
-      // Bay count is typically the larger of the two grid counts minus 1
-      const horizontalBays = Math.max(0, horizontalGrids.length - 1);
-      const verticalBays = Math.max(0, verticalGrids.length - 1);
-      const bayCount = Math.max(horizontalBays, verticalBays);
+    const horizontalGrids = extractArray('horizontalGrids');
+    const verticalGrids = extractArray('verticalGrids');
+    const gridSpacing = extractArray('gridSpacing');
 
-      return {
-        horizontalGrids,
-        verticalGrids,
-        bayCount,
-        gridSpacing: Array.isArray(parsed.gridSpacing) ? parsed.gridSpacing : []
-      };
-    } catch (error) {
-      // Fallback: try to extract grid labels with regex
+    // If regex on JSON structure found nothing, try the raw text fallback
+    if (horizontalGrids.length === 0 && verticalGrids.length === 0) {
       return this.extractGridsWithRegex(text);
     }
+
+    const horizontalBays = Math.max(0, horizontalGrids.length - 1);
+    const verticalBays = Math.max(0, verticalGrids.length - 1);
+
+    return {
+      horizontalGrids,
+      verticalGrids,
+      bayCount: Math.max(horizontalBays, verticalBays),
+      gridSpacing
+    };
   }
 
   private extractGridsWithRegex(text: string): GridInfo {
