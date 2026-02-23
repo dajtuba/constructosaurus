@@ -81,6 +81,12 @@ Where:
         jsonText = jsonText.substring(firstBrace, lastBrace + 1);
       }
 
+      // Sanitize common JSON issues from LLM output
+      jsonText = jsonText
+        .replace(/,\s*([}\]])/g, '$1')     // trailing commas
+        .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')  // unquoted keys
+        .replace(/:\s*'([^']*)'/g, ': "$1"');  // single-quoted values
+
       const parsed = JSON.parse(jsonText);
       
       // Validate and calculate bay count
