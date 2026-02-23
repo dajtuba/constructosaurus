@@ -35,54 +35,118 @@ function buildZonePrompt(zone: Zone, memberType: string): string {
   };
 
   const memberPrompts = {
-    joists: `Find floor joist specifications in the ${zone.name} zone.
-LOOK FOR:
-- TJI callouts: "14\\" TJI 560", "11 7/8\\" TJI 360"
-- Lumber joists: "2x10", "2x12"
-- Designations: "D1", "D2", "D3"
-- Spacing: "@ 16\\" OC", "@ 12\\" OC"
+    joists: `You are analyzing a construction floor framing plan.
 
-EXAMPLES: ["14\\" TJI 560 @ 16\\" OC", "D1 @ 16\\" OC", "2x10 @ 16\\" OC"]`,
+${zoneInstructions[zone.name as keyof typeof zoneInstructions]}.
 
-    beams: `Find beam specifications in the ${zone.name} zone.
-LOOK FOR:
-- GLB: "5 1/8\\" x 18\\" GLB", "3 1/2\\" x 16\\" GLB"
-- LVL: "3 1/2\\" x 14\\" LVL", "1 3/4\\" x 11 7/8\\" LVL"
-- PSL: "7\\" x 18\\" PSL"
-- Steel: "W18x106", "W10x100"
+Find floor joist specifications - these are horizontal framing members.
 
-EXAMPLES: ["5 1/8\\" x 18\\" GLB", "3 1/2\\" x 14\\" LVL"]`,
+IGNORE:
+- Legend text
+- Notes sections
+- General instructions
+- Anything not on the actual floor plan drawing
 
-    plates: `Find plate specifications in the ${zone.name} zone.
-LOOK FOR:
-- Sill plates: "2x6 PT", "2x8 PT", "2x10 PT"
+LOOK FOR on the actual plan drawing:
+- TJI callouts: "14\\" TJI 560 @ 16\\" OC", "11 7/8\\" TJI 360 @ 16\\" OC"
+- Lumber joists: "2x10 @ 16\\" OC", "2x12 @ 16\\" OC"
+- Designations: "D1 @ 16\\" OC", "D2 @ 16\\" OC"
+
+Return ONLY a JSON array of the EXACT text you see on the plan.
+If you find nothing, return: []
+
+Example valid response: ["14\\" TJI 560 @ 16\\" OC", "D1 @ 16\\" OC"]`,
+
+    beams: `You are analyzing a construction floor framing plan.
+
+${zoneInstructions[zone.name as keyof typeof zoneInstructions]}.
+
+Find beam specifications - these are larger structural members.
+
+IGNORE:
+- Legend text
+- Notes sections  
+- General instructions
+- Anything not on the actual floor plan drawing
+
+LOOK FOR on the actual plan drawing:
+- GLB beams: "5 1/8\\" x 18\\" GLB", "3 1/2\\" x 16\\" GLB"
+- LVL beams: "3 1/2\\" x 14\\" LVL", "1 3/4\\" x 11 7/8\\" LVL"
+- Steel beams: "W18x106", "W10x100"
+
+Return ONLY a JSON array of the EXACT text you see on the plan.
+If you find nothing, return: []
+
+Example valid response: ["5 1/8\\" x 18\\" GLB", "3 1/2\\" x 14\\" LVL"]`,
+
+    plates: `You are analyzing a construction floor framing plan.
+
+${zoneInstructions[zone.name as keyof typeof zoneInstructions]}.
+
+Find plate specifications - these are perimeter framing members.
+
+IGNORE:
+- Legend text
+- Notes sections
+- General instructions
+- Anything not on the actual floor plan drawing
+
+LOOK FOR on the actual plan drawing:
+- Sill plates: "2x6 PT", "2x8 PT", "2x10 PT", "2x14 PT"
 - Top plates: "2x6", "2x8", "2x10"
-- PT = Pressure Treated
+- PT means Pressure Treated
 
-EXAMPLES: ["2x6 PT", "2x8 PT", "2x10"]`,
+Return ONLY a JSON array of the EXACT text you see on the plan.
+If you find nothing, return: []
 
-    columns: `Find column/post specifications in the ${zone.name} zone.
-LOOK FOR:
+Example valid response: ["2x14 PT", "2x6 PT"]`,
+
+    columns: `You are analyzing a construction floor framing plan.
+
+${zoneInstructions[zone.name as keyof typeof zoneInstructions]}.
+
+Find column/post specifications - these are vertical support members.
+
+IGNORE:
+- Legend text
+- Notes sections
+- General instructions
+- Anything not on the actual floor plan drawing
+
+LOOK FOR on the actual plan drawing:
 - Wood posts: "6x6 PT", "4x4 PT", "6x8 PT"
 - Steel columns: "HSS6x6x1/4", "W14x90"
 - Pipe columns: "4\\" STD PIPE"
 
-EXAMPLES: ["6x6 PT", "4x4 PT", "HSS6x6x1/4"]`,
+Return ONLY a JSON array of the EXACT text you see on the plan.
+If you find nothing, return: []
 
-    sections: `Find section reference markers in the ${zone.name} zone.
-LOOK FOR:
-- Detail callouts: circles with triangles containing "3/S3.0", "4/S3.0"
+Example valid response: ["6x6 PT", "4x4 PT"]`,
+
+    sections: `You are analyzing a construction floor framing plan.
+
+${zoneInstructions[zone.name as keyof typeof zoneInstructions]}.
+
+Find section reference markers - these are circles with numbers/letters.
+
+IGNORE:
+- Legend text
+- Notes sections
+- General instructions
+- Anything not on the actual floor plan drawing
+
+LOOK FOR on the actual plan drawing:
+- Detail callouts in circles: "3/S3.0", "4/S3.0", "5/S3.0"
 - Section markers: "A/S4.1", "B/S4.1"
-- Elevation markers: "1/A4.1", "2/A4.1"
+- These appear as circled numbers with sheet references
 
-EXAMPLES: ["3/S3.0", "4/S3.0", "5/S3.0"]`
+Return ONLY a JSON array of the EXACT text you see on the plan.
+If you find nothing, return: []
+
+Example valid response: ["3/S3.0", "4/S3.0"]`
   };
 
-  return `${zoneInstructions[zone.name as keyof typeof zoneInstructions]}.
-
-${memberPrompts[memberType as keyof typeof memberPrompts]}
-
-Return ONLY a valid JSON array. If nothing found, return: []`;
+  return memberPrompts[memberType as keyof typeof memberPrompts];
 }
 
 async function extractFromZone(imagePath: string, zone: Zone, memberType: string): Promise<string[]> {
