@@ -21,7 +21,9 @@ export class ImagePreprocessor {
   private tempDir: string;
 
   constructor(tempDir: string = 'data/vision-temp') {
-    this.tempDir = path.resolve(tempDir);
+    // Resolve relative to project root (2 levels up from dist/vision/)
+    const projectRoot = path.resolve(__dirname, '../..');
+    this.tempDir = path.resolve(projectRoot, tempDir);
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
     }
