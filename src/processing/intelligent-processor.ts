@@ -368,7 +368,8 @@ export class IntelligentDocumentProcessor {
             const sheetIndex = sheets.findIndex(s => s.pageNumber === pageNum);
             if (sheetIndex !== -1) {
               const foundText = visionResult.foundation
-                .map(f => `FOUNDATION ${f.type.toUpperCase()}: ${f.size || ''}${f.rebar ? ` rebar: ${f.rebar}` : ''}${f.count ? ` (QTY: ${f.count})` : ''}`)
+                .filter((f: any) => f.type)
+                .map((f: any) => `FOUNDATION ${f.type.toUpperCase()}: ${f.size || ''}${f.rebar ? ` rebar: ${f.rebar}` : ''}${f.count ? ` (QTY: ${f.count})` : ''}`)
                 .join('\n');
               sheets[sheetIndex].text += `\n${foundText}`;
             }
