@@ -4,70 +4,60 @@
   "zones": [
     {
       "zone": "left",
-      "joists": [
-        "14 TJI 560 @ 16 OC"
-      ],
-      "beams": [
-        "5 1/8 x 18 GLB",
-        "3 1/2 x 14 LVL"
-      ],
-      "plates": [
-        "2x14 PT",
-        "2x12"
-      ],
-      "columns": [
-        "6x6 PT"
-      ],
+      "joists": [],
+      "beams": [],
+      "plates": [],
+      "columns": [],
       "sections": [
-        "3/S3.0",
-        "4/S3.0",
-        "5/S3.0"
+        "SPAN",
+        "EXTENT",
+        "SECTION DETAIL",
+        "(DB)",
+        "DROP BEAM",
+        "(TYP)",
+        "TYPICAL",
+        "(P1)",
+        "PRESSURE-TREATED"
       ]
     },
     {
       "zone": "center",
-      "joists": [
-        "14 TJI 560 @ 16 OC"
-      ],
-      "beams": [
-        "5 1/8 x 18 GLB",
-        "3 1/2 x 14 LVL"
-      ],
-      "plates": [
-        "2x14 PT",
-        "2x12"
-      ],
+      "joists": [],
+      "beams": [],
+      "plates": [],
       "columns": [
-        "6x6 PT"
+        {
+          "center_third": "CENTER THIRD"
+        }
       ],
       "sections": [
-        "3/S3.0",
-        "4/S3.0",
-        "5/S3.0"
+        "drawing_number",
+        "S2.1"
       ]
     },
     {
       "zone": "right",
       "joists": [
-        "14 TJI 560 @ 16 OC"
+        "14\" TJI 560 @ 16\" OC",
+        "D1 @ 16\" OC",
+        "2x10 @ 16\" OC"
       ],
       "beams": [
-        "5 1/8 x 18 GLB",
-        "3 1/2 x 14 LVL"
+        "drawing_number",
+        "S2.1"
       ],
-      "plates": [
-        "2x14 PT",
-        "2x12"
-      ],
+      "plates": [],
       "columns": [
-        "4x4 PSL"
+        "6x6 PT",
+        "4x4 PT",
+        "HSS6x6x1/4",
+        "W14x90"
       ],
       "sections": [
-        "3/S3.0",
-        "4/S3.0",
-        "5/S3.0"
+        "drawing_number",
+        "S2.1"
       ]
     }
   ],
-  "extracted_at": "2026-02-22T23:23:02.149Z"
+  "extracted_at": "2026-02-23T01:40:05.647Z"
 }
