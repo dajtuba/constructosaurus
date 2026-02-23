@@ -86,6 +86,7 @@ Where:
         .replace(/,\s*([}\]])/g, '$1')     // trailing commas
         .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')  // unquoted keys
         .replace(/:\s*'([^']*)'/g, ': "$1"')  // single-quoted values
+        .replace(/"\s+"/g, '", "')  // missing commas between strings
         .replace(/\n/g, ' ');  // newlines in strings
 
       const parsed = JSON.parse(jsonText);
