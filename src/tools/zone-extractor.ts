@@ -28,34 +28,61 @@ const ZONES: Zone[] = [
 ];
 
 function buildZonePrompt(zone: Zone, memberType: string): string {
-  const prompts = {
-    joists: `Focus on the ${zone.name} third of this floor plan. Find floor joist specifications.
-Look for: TJI with numbers, D1/D2/D3 designations, spacing like "@ 16\" OC".
-Return ONLY a valid JSON array like: ["14 TJI 560 @ 16 OC", "D1 @ 16 OC"]
-If none found, return: []`,
-
-    beams: `Focus on the ${zone.name} third of this floor plan. Find beam specifications.
-Look for: GLB, LVL, PSL with dimensions.
-Return ONLY a valid JSON array like: ["5 1/8 x 18 GLB", "3 1/2 x 14 LVL"]
-If none found, return: []`,
-
-    plates: `Focus on the ${zone.name} third of this floor plan. Find plate specifications.
-Look for: 2x14, 2x12, PT (pressure treated), sill plates.
-Return ONLY a valid JSON array like: ["2x14 PT", "2x12"]
-If none found, return: []`,
-
-    columns: `Focus on the ${zone.name} third of this floor plan. Find column specifications.
-Look for: 6x6, 4x4, PSL columns.
-Return ONLY a valid JSON array like: ["6x6 PT", "4x4 PSL"]
-If none found, return: []`,
-
-    sections: `Focus on the ${zone.name} third of this floor plan. Find section reference markers.
-Look for: circles with triangles containing text like 3/S3.0, 4/S3.0, 5/S3.0.
-Return ONLY a valid JSON array like: ["3/S3.0", "4/S3.0", "5/S3.0"]
-If none found, return: []`
+  const zoneInstructions = {
+    left: "Focus ONLY on the LEFT THIRD of the drawing",
+    center: "Focus ONLY on the CENTER THIRD of the drawing", 
+    right: "Focus ONLY on the RIGHT THIRD of the drawing"
   };
 
-  return prompts[memberType as keyof typeof prompts] || '';
+  const memberPrompts = {
+    joists: `Find floor joist specifications in the ${zone.name} zone.
+LOOK FOR:
+- TJI callouts: "14\\" TJI 560", "11 7/8\\" TJI 360"
+- Lumber joists: "2x10", "2x12"
+- Designations: "D1", "D2", "D3"
+- Spacing: "@ 16\\" OC", "@ 12\\" OC"
+
+EXAMPLES: ["14\\" TJI 560 @ 16\\" OC", "D1 @ 16\\" OC", "2x10 @ 16\\" OC"]`,
+
+    beams: `Find beam specifications in the ${zone.name} zone.
+LOOK FOR:
+- GLB: "5 1/8\\" x 18\\" GLB", "3 1/2\\" x 16\\" GLB"
+- LVL: "3 1/2\\" x 14\\" LVL", "1 3/4\\" x 11 7/8\\" LVL"
+- PSL: "7\\" x 18\\" PSL"
+- Steel: "W18x106", "W10x100"
+
+EXAMPLES: ["5 1/8\\" x 18\\" GLB", "3 1/2\\" x 14\\" LVL"]`,
+
+    plates: `Find plate specifications in the ${zone.name} zone.
+LOOK FOR:
+- Sill plates: "2x6 PT", "2x8 PT", "2x10 PT"
+- Top plates: "2x6", "2x8", "2x10"
+- PT = Pressure Treated
+
+EXAMPLES: ["2x6 PT", "2x8 PT", "2x10"]`,
+
+    columns: `Find column/post specifications in the ${zone.name} zone.
+LOOK FOR:
+- Wood posts: "6x6 PT", "4x4 PT", "6x8 PT"
+- Steel columns: "HSS6x6x1/4", "W14x90"
+- Pipe columns: "4\\" STD PIPE"
+
+EXAMPLES: ["6x6 PT", "4x4 PT", "HSS6x6x1/4"]`,
+
+    sections: `Find section reference markers in the ${zone.name} zone.
+LOOK FOR:
+- Detail callouts: circles with triangles containing "3/S3.0", "4/S3.0"
+- Section markers: "A/S4.1", "B/S4.1"
+- Elevation markers: "1/A4.1", "2/A4.1"
+
+EXAMPLES: ["3/S3.0", "4/S3.0", "5/S3.0"]`
+  };
+
+  return `${zoneInstructions[zone.name as keyof typeof zoneInstructions]}.
+
+${memberPrompts[memberType as keyof typeof memberPrompts]}
+
+Return ONLY a valid JSON array. If nothing found, return: []`;
 }
 
 async function extractFromZone(imagePath: string, zone: Zone, memberType: string): Promise<string[]> {

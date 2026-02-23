@@ -1,4 +1,7 @@
-import { OllamaVisionAnalyzer } from '../vision/ollama-vision-analyzer.js';
+import { OllamaVisionAnalyzer } from '../vision/ollama-vision-analyzer';
+import { EnhancedSpacingParser, SpacingResult } from './enhanced-spacing-parser';
+import { DimensionExtractor } from '../tools/dimension-extractor';
+import { WasteFactorCalculator } from './waste-factor-calculator';
 
 export interface DimensionData {
   span: number; // in inches
@@ -24,40 +27,41 @@ export interface MaterialTakeoff {
 }
 
 export class QuantityCalculator {
-  constructor(private vision: OllamaVisionAnalyzer) {}
+  private dimensionExtractor: DimensionExtractor;
 
-  // Parse spacing from spec string (@ 16" OC → 16)
-  parseSpacing(spec: string): number {
-    const match = spec.match(/@\s*(\d+(?:\.\d+)?)\s*["\s]*OC/i);
-    return match ? parseFloat(match[1]) : 16; // default 16" OC
+  constructor(private vision: OllamaVisionAnalyzer) {
+    this.dimensionExtractor = new DimensionExtractor();
   }
 
-  // Extract dimensions from plan using vision
-  async extractDimensions(imagePath: string, zone?: string): Promise<DimensionData[]> {
-    const result = await this.vision.analyzeDrawingPage(imagePath, 1, 'structural');
+  // Parse spacing from spec string using enhanced parser
+  parseSpacing(spec: string): SpacingResult {
+    return EnhancedSpacingParser.parseSpacing(spec);
+  }
+
+  // Extract dimensions from plan using dedicated extractor
+  async extractDimensions(imagePath: string, sheet: string, zone?: string): Promise<DimensionData[]> {
+    const result = await this.dimensionExtractor.extractDimensions(imagePath, sheet);
     
-    // Extract dimensions from vision result
-    const dimensions: DimensionData[] = [];
+    // Convert to legacy format for compatibility
+    const dimensions: DimensionData[] = result.dimensions.map(dim => ({
+      span: dim.inches,
+      location: dim.location
+    }));
     
-    if (result.dimensions) {
-      result.dimensions.forEach(dim => {
-        const span = this.parseDimension(dim.value);
-        if (span > 0) {
-          dimensions.push({
-            span,
-            location: dim.location || dim.element || 'unknown'
-          });
-        }
-      });
-    }
-    
-    // If no dimensions found, try to extract from any text in the result
-    if (dimensions.length === 0) {
-      const resultText = JSON.stringify(result);
-      return this.extractDimensionsFromText(resultText);
+    // If zone specified, filter dimensions
+    if (zone) {
+      return dimensions.filter(d => 
+        d.location.toLowerCase().includes(zone.toLowerCase())
+      );
     }
     
     return dimensions;
+  }
+
+  // Get main span using dimension extractor
+  async getMainSpan(imagePath: string, sheet: string): Promise<number> {
+    const result = await this.dimensionExtractor.extractDimensions(imagePath, sheet);
+    return this.dimensionExtractor.getMainSpan(result);
   }
 
   // Parse dimension string to inches (24'-6" → 294)
@@ -110,10 +114,10 @@ export class QuantityCalculator {
     return dimensions;
   }
 
-  // Calculate joist quantity: span ÷ spacing + 1
-  calculateJoistQuantity(span: number, spacing: number): number {
-    if (span <= 0 || spacing <= 0) return 0;
-    return Math.floor(span / spacing) + 1;
+  // Calculate joist quantity using enhanced spacing parser
+  calculateJoistQuantity(span: number, spacingSpec: string): number {
+    const spacingResult = this.parseSpacing(spacingSpec);
+    return EnhancedSpacingParser.calculateQuantity(span, spacingResult);
   }
 
   // Calculate beam quantity (typically 1 per span)
@@ -121,30 +125,22 @@ export class QuantityCalculator {
     return spans.length;
   }
 
-  // Generate material takeoff from zone data and dimensions
+  // Generate material takeoff with waste factors
   async generateTakeoff(
     zoneData: any,
     imagePath: string
   ): Promise<MaterialTakeoff> {
-    const dimensions = await this.extractDimensions(imagePath);
+    const dimensions = await this.extractDimensions(imagePath, zoneData.sheet);
+    const mainSpan = await this.getMainSpan(imagePath, zoneData.sheet);
     const materials: MaterialQuantity[] = [];
+    
+    console.log(`📏 Using main span: ${Math.floor(mainSpan / 12)}'-${mainSpan % 12}" (${mainSpan}")`);
     
     // Process each zone
     for (const zone of zoneData.zones) {
-      const zoneDims = dimensions.filter(d => 
-        d.location.toLowerCase().includes(zone.zone) ||
-        d.location.toLowerCase().includes('overall') ||
-        d.span > 200 // likely main spans
-      );
-      
-      const mainSpan = zoneDims.length > 0 
-        ? Math.max(...zoneDims.map(d => d.span))
-        : 288; // default 24' span
-      
-      // Calculate joists
+      // Calculate joists with enhanced spacing parser
       for (const joistSpec of zone.joists || []) {
-        const spacing = this.parseSpacing(joistSpec);
-        const quantity = this.calculateJoistQuantity(mainSpan, spacing);
+        const quantity = this.calculateJoistQuantity(mainSpan, joistSpec);
         
         materials.push({
           spec: joistSpec,
@@ -152,7 +148,7 @@ export class QuantityCalculator {
           unit: 'EA',
           span: mainSpan,
           locations: [zone.zone],
-          calculation: `${mainSpan}" span ÷ ${spacing}" OC + 1 = ${quantity} EA`
+          calculation: `Enhanced spacing calculation: ${quantity} EA`
         });
       }
       
@@ -195,15 +191,30 @@ export class QuantityCalculator {
     // Consolidate duplicate specs
     const consolidated = this.consolidateMaterials(materials);
     
+    // Apply waste factors
+    const withWaste = WasteFactorCalculator.applyWasteFactors(
+      consolidated.map(m => ({ spec: m.spec, quantity: m.quantity, unit: m.unit }))
+    );
+    
+    // Convert back to MaterialQuantity format
+    const finalMaterials: MaterialQuantity[] = consolidated.map((material, index) => {
+      const wasteData = withWaste[index];
+      return {
+        ...material,
+        quantity: wasteData.totalQuantity,
+        calculation: `${material.calculation} + ${(wasteData.wasteFactor * 100).toFixed(0)}% waste = ${wasteData.totalQuantity} ${material.unit}`
+      };
+    });
+    
     // Calculate totals
     const totals: Record<string, number> = {};
-    consolidated.forEach(m => {
+    finalMaterials.forEach(m => {
       totals[m.spec] = m.quantity;
     });
     
     return {
       sheet: zoneData.sheet,
-      materials: consolidated,
+      materials: finalMaterials,
       totals,
       calculated_at: new Date().toISOString()
     };

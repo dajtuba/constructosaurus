@@ -1,0 +1,112 @@
+{
+  "timestamp": "2026-02-23T00:51:00.576Z",
+  "phase": "Phase 1 Quick Wins",
+  "overallAccuracy": 0.9999916677082031,
+  "overallConfidence": 0.9433333333333334,
+  "componentCount": 3,
+  "estimatedImprovement": 33.33222236109375,
+  "components": [
+    {
+      "component": "Enhanced Spacing Parser",
+      "accuracy": 0.9999750031246094,
+      "confidence": 0.95,
+      "improvements": [
+        "Handles range spacing (@ 12\" to 16\" OC)",
+        "Handles dual spacing (@ 16\"/19.2\" OC)",
+        "Handles metric spacing (@ 400mm OC)",
+        "Handles variable spacing patterns"
+      ],
+      "details": [
+        {
+          "input": "@ 16\" OC",
+          "expected": 16,
+          "actual": 16,
+          "type": "fixed",
+          "accuracy": 1
+        },
+        {
+          "input": "@ 12\" to 16\" OC",
+          "expected": 14,
+          "actual": 14,
+          "type": "range",
+          "accuracy": 1
+        },
+        {
+          "input": "@ 16\"/19.2\" OC",
+          "expected": 16,
+          "actual": 16,
+          "type": "dual",
+          "accuracy": 1
+        },
+        {
+          "input": "@ 400mm OC",
+          "expected": 15.75,
+          "actual": 15.748031496062993,
+          "type": "fixed",
+          "accuracy": 0.9998750156230471
+        },
+        {
+          "input": "varies @ 16\" typ",
+          "expected": 16,
+          "actual": 16,
+          "type": "variable",
+          "accuracy": 1
+        }
+      ]
+    },
+    {
+      "component": "Dimension Extractor",
+      "accuracy": 1,
+      "confidence": 0.9,
+      "improvements": [
+        "Extracts actual dimensions instead of guessing 24' spans",
+        "Identifies structural spans vs. detail dimensions",
+        "Handles multiple dimension formats",
+        "Provides confidence scores"
+      ],
+      "details": {
+        "totalDimensions": 3,
+        "structuralSpans": 2,
+        "mainSpan": "24'-6\"",
+        "mainSpanInches": 294
+      }
+    },
+    {
+      "component": "Waste Factor Calculator",
+      "accuracy": 1,
+      "confidence": 0.98,
+      "improvements": [
+        "Applies material-specific waste factors",
+        "Automatically identifies material types",
+        "Accounts for cutting waste and damage",
+        "Provides detailed calculations"
+      ],
+      "details": [
+        {
+          "spec": "14\" TJI 560 @ 16\" OC",
+          "expected": 0.17,
+          "actual": 0.17,
+          "accuracy": 1
+        },
+        {
+          "spec": "5 1/8\" x 18\" GLB",
+          "expected": 0.08,
+          "actual": 0.08,
+          "accuracy": 1
+        },
+        {
+          "spec": "2x6 PT sill plate",
+          "expected": 0.25,
+          "actual": 0.25,
+          "accuracy": 1
+        },
+        {
+          "spec": "6x6 PT post",
+          "expected": 0.25,
+          "actual": 0.25,
+          "accuracy": 1
+        }
+      ]
+    }
+  ]
+}

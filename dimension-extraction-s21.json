@@ -1,0 +1,58 @@
+{
+  "sheet": "S2.1",
+  "dimensions": [
+    {
+      "value": "24'-6\"",
+      "inches": 294,
+      "location": "main span",
+      "element": "joist span",
+      "gridReference": "A to B",
+      "confidence": 1
+    },
+    {
+      "value": "16\"",
+      "inches": 16,
+      "location": "joist spacing",
+      "element": "spacing",
+      "gridReference": "",
+      "confidence": 0.7
+    },
+    {
+      "value": "18'-0\"",
+      "inches": 216,
+      "location": "bay width",
+      "element": "column spacing",
+      "gridReference": "1 to 2",
+      "confidence": 1
+    }
+  ],
+  "spans": [
+    {
+      "value": "24'-6\"",
+      "inches": 294,
+      "location": "main span",
+      "element": "joist span",
+      "gridReference": "A to B",
+      "confidence": 1
+    },
+    {
+      "value": "18'-0\"",
+      "inches": 216,
+      "location": "bay width",
+      "element": "column spacing",
+      "gridReference": "1 to 2",
+      "confidence": 1
+    }
+  ],
+  "spacings": [
+    {
+      "value": "16\"",
+      "inches": 16,
+      "location": "joist spacing",
+      "element": "spacing",
+      "gridReference": "",
+      "confidence": 0.7
+    }
+  ],
+  "extracted_at": "2026-02-23T00:49:53.294Z"
+}
