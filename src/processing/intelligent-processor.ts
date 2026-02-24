@@ -336,10 +336,10 @@ export class IntelligentDocumentProcessor {
         console.log(`  ⏩ Resuming: ${completedPages.size} pages done, ${remaining.length} remaining`);
       }
       
-      try {
-        for (let i = 0; i < remaining.length; i++) {
-          const pageNum = remaining[i];
-          console.log(`    Analyzing page ${pageNum} (${completedPages.size + i + 1}/${pagesToAnalyzeCount})...`);
+      for (let i = 0; i < remaining.length; i++) {
+        const pageNum = remaining[i];
+        console.log(`    Analyzing page ${pageNum} (${completedPages.size + i + 1}/${pagesToAnalyzeCount})...`);
+        try {
           const imagePath = await this.imageConverter.convertPageToImage(
             pdfPath,
             pageNum,
@@ -484,12 +484,12 @@ export class IntelligentDocumentProcessor {
           // Save progress after each page
           completedPages.add(pageNum);
           this.saveProgress(pdfPath, completedPages);
+        } catch (error) {
+          console.error(`    ⚠️  Page ${pageNum} failed: ${error}`);
         }
-        
-        console.log(`  ✅ Vision extracted ${visionScheduleCount} schedule entries, ${visionItemCountTotal} item counts`);
-      } catch (error) {
-        console.error(`  ⚠️  Vision analysis failed: ${error}`);
       }
+      
+      console.log(`  ✅ Vision extracted ${visionScheduleCount} schedule entries, ${visionItemCountTotal} item counts`);
     }
     
     console.log(`  ✅ Processed ${sheets.length} sheets, ${schedules.length} old schedules, ${extractedTables.length} tables, ${parsedScheduleCount} schedule entries, ${structuralMemberCount} structural entries`);
