@@ -317,16 +317,19 @@ Return ONLY valid JSON:
           ...b,
           mark: fixOcr(b.mark || ''),
           length: b.length ? fixOcr(b.length) : undefined,
+          gridLocation: b.gridLocation ? this.parseGridLocation(fixOcr(b.gridLocation)) : undefined,
           count: b.count || this.extractQuantity(b.mark || '')
         })),
         columns: (parsed.columns || []).map((c: any) => ({
           ...c,
           mark: fixOcr(c.mark || ''),
+          gridLocation: c.gridLocation ? this.parseGridLocation(fixOcr(c.gridLocation)) : undefined,
           count: c.count || this.extractQuantity(c.mark || '')
         })),
         joists: (parsed.joists || []).map((j: any, index: number) => ({
           ...j,
           mark: this.extractJoistMark(j, index),
+          gridLocation: j.gridLocation ? this.parseGridLocation(fixOcr(j.gridLocation)) : undefined,
           count: j.count || this.extractQuantity(j.mark || j.spec || '')
         })),
         connections: parsed.connections || [],
