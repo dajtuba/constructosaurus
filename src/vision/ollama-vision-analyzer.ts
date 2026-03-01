@@ -178,6 +178,13 @@ TYPICAL EXAMPLES:
 - Columns: "6x6 PT" or "HSS6x6x1/4"
 - Designations: "D1", "D2", "B1", "C1"
 
+QUANTITY PATTERNS (extract count from callouts):
+- "(4) B1" → count: 4
+- "B1 (TYP. 3 PLACES)" → count: 3  
+- "QTY: 2" → count: 2
+- "B1 x 4" → count: 4
+- "2 EA" → count: 2
+
 Return ONLY valid JSON:
 {
   "beams": [{"mark": "W18x106", "length": "34'-6\\"", "gridLocation": "A-B/1-2", "count": 1, "elevation": ""}],
@@ -227,6 +234,13 @@ DIMENSION EXAMPLES:
 SECTION REFERENCES:
 - 3/S3.0, 4/S3.0, 5/S3.0 (detail callouts)
 - A/S4.1, B/S4.1 (section markers)
+
+QUANTITY PATTERNS (extract count from callouts):
+- "(4) B1" → count: 4
+- "B1 (TYP. 3 PLACES)" → count: 3  
+- "QTY: 2" → count: 2
+- "B1 x 4" → count: 4
+- "2 EA" → count: 2
 
 Return ONLY valid JSON:
 {
@@ -302,15 +316,18 @@ Return ONLY valid JSON:
         beams: (parsed.beams || []).map((b: any) => ({
           ...b,
           mark: fixOcr(b.mark || ''),
-          length: b.length ? fixOcr(b.length) : undefined
+          length: b.length ? fixOcr(b.length) : undefined,
+          count: b.count || this.extractQuantity(b.mark || '')
         })),
         columns: (parsed.columns || []).map((c: any) => ({
           ...c,
-          mark: fixOcr(c.mark || '')
+          mark: fixOcr(c.mark || ''),
+          count: c.count || this.extractQuantity(c.mark || '')
         })),
         joists: (parsed.joists || []).map((j: any, index: number) => ({
           ...j,
-          mark: this.extractJoistMark(j, index)
+          mark: this.extractJoistMark(j, index),
+          count: j.count || this.extractQuantity(j.mark || j.spec || '')
         })),
         connections: parsed.connections || [],
         foundation: parsed.foundation || [],
@@ -576,7 +593,7 @@ Return ONLY valid JSON:
       if (zoneMatch[3]) return `D${zoneMatch[3].charCodeAt(0) - 64}`; // A=1, B=2, etc.
     }
     
-    // Generate sequential mark if no designation found
+    // Generate sequential mark if no designation found (J1, J2, J3...)
     return `J${index + 1}`;
   }
 
@@ -586,7 +603,7 @@ Return ONLY valid JSON:
       /^W\d+x\d+$/,           // W18x106
       /^HSS\d+x\d+x[\d\/]+$/, // HSS6x6x1/4
       /^\d+["\s]*TJI\s*\d+$/, // 14" TJI 560
-      /^[DBCP]\d+$/,          // D1, B1, C1, P1
+      /^[DBCPJ]\d+$/,         // D1, B1, C1, P1, J1
       /^\d+x\d+(\s+PT)?$/,    // 2x10, 6x6 PT
       /^\d+\s*\d*\/?\d*["\s]*x\s*\d+["\s]*\s*(GLB|LVL|PSL)$/ // 5 1/8" x 18" GLB
     ];
