@@ -227,4 +227,35 @@ export class StructuralTableParser {
     
     return 'calculation_table';
   }
+
+  private normalizeHeaders(headers: string[]): string[] {
+    return headers.map(h => 
+      h.toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]/g, '_')
+    );
+  }
+
+  private mapHeaders(
+    headers: string[], 
+    mapping: Record<string, string[]>
+  ): Record<string, number> {
+    const result: Record<string, number> = {};
+    
+    for (const [key, variations] of Object.entries(mapping)) {
+      for (let i = 0; i < headers.length; i++) {
+        if (variations.some(v => headers[i].includes(v))) {
+          result[key] = i;
+          break;
+        }
+      }
+    }
+    
+    return result;
+  }
+
+  private getCell(row: string[], index?: number): string | undefined {
+    if (index === undefined || index < 0 || index >= row.length) return undefined;
+    return row[index]?.trim();
+  }
 }
