@@ -152,6 +152,14 @@ CRITICAL PATTERNS TO RECOGNIZE:
 4. LUMBER: 2x10, 2x12, 4x12, 6x6 PT (pressure treated)
 5. ENGINEERED: 5 1/8" x 18" GLB, 3 1/2" x 14" LVL, 7" x 18" PSL
 
+GRID LOCATION PATTERNS - CRITICAL TO EXTRACT:
+- "@ A/1" or "at A/1" (at grid intersection)
+- "at grid B/2" (explicit grid reference)
+- "between A-B" or "A-B" (between grid lines)
+- "grid line A" (on grid line)
+- "A to B" (spanning grids)
+- "column @ B/3" (column at intersection)
+
 SPACING PATTERNS:
 - @ 16" OC (on center)
 - @ 12" to 16" OC (variable spacing)
@@ -174,7 +182,7 @@ Return ONLY valid JSON:
 {
   "beams": [{"mark": "W18x106", "length": "34'-6\\"", "gridLocation": "A-B/1-2", "count": 1, "elevation": ""}],
   "columns": [{"mark": "HSS6x6x1/4", "gridLocation": "at A/1", "height": "", "basePlate": ""}],
-  "joists": [{"mark": "14\\" TJI 560", "spacing": "@ 16\\" OC", "span": "24'-0\\"", "count": 0}],
+  "joists": [{"mark": "14\\" TJI 560", "spacing": "@ 16\\" OC", "span": "24'-0\\"", "gridLocation": "A-B", "count": 0}],
   "connections": [{"type": "bolted", "location": "beam-to-column", "detail": ""}],
   "schedules": [{"type": "beam_schedule", "entries": [{"mark": "B1", "size": "W18x106", "length": "", "qty": 1}]}],
   "dimensions": [{"location": "bay spacing", "value": "24'-6\\"", "gridReference": "A to B", "element": "beam span"}],
@@ -191,6 +199,14 @@ WOOD FRAMING PATTERNS:
 3. PLATES: 2x6 PT, 2x8 PT, 2x10 PT (sill plates)
 4. POSTS: 6x6 PT, 4x4 PT, 6x8 PT
 5. BLOCKING: 2x10 blocking, 2x12 blocking
+
+GRID LOCATION PATTERNS - CRITICAL TO EXTRACT:
+- "@ A/1" or "at A/1" (at grid intersection)
+- "at grid B/2" (explicit grid reference)
+- "between A-B" or "A-B" (between grid lines)
+- "grid line A" (on grid line)
+- "A to B" (spanning grids)
+- "beam @ B/3" (beam at intersection)
 
 DESIGNATION PATTERNS:
 - D1, D2, D3 (joist designations)
@@ -214,10 +230,10 @@ SECTION REFERENCES:
 
 Return ONLY valid JSON:
 {
-  "joists": [{"mark": "D1", "spec": "14\\" TJI 560 @ 16\\" OC", "span": "24'-6\\"", "count": 0}],
-  "beams": [{"mark": "B1", "spec": "5 1/8\\" x 18\\" GLB", "length": "24'-6\\"", "count": 1}],
-  "plates": [{"mark": "sill", "spec": "2x6 PT", "length": "", "count": 0}],
-  "posts": [{"mark": "P1", "spec": "6x6 PT", "height": "8'-0\\"", "count": 2}],
+  "joists": [{"mark": "D1", "spec": "14\\" TJI 560 @ 16\\" OC", "span": "24'-6\\"", "gridLocation": "A-B", "count": 0}],
+  "beams": [{"mark": "B1", "spec": "5 1/8\\" x 18\\" GLB", "length": "24'-6\\"", "gridLocation": "at A/1", "count": 1}],
+  "plates": [{"mark": "sill", "spec": "2x6 PT", "length": "", "gridLocation": "grid line A", "count": 0}],
+  "posts": [{"mark": "P1", "spec": "6x6 PT", "height": "8'-0\\"", "gridLocation": "at B/2", "count": 2}],
   "sections": [{"reference": "3/S3.0", "location": "left bay", "detail": "joist connection"}],
   "dimensions": [{"location": "main span", "value": "24'-6\\"", "element": "joist span"}]
 }`;
@@ -292,9 +308,9 @@ Return ONLY valid JSON:
           ...c,
           mark: fixOcr(c.mark || '')
         })),
-        joists: (parsed.joists || []).map((j: any) => ({
+        joists: (parsed.joists || []).map((j: any, index: number) => ({
           ...j,
-          mark: fixOcr(j.mark || '')
+          mark: this.extractJoistMark(j, index)
         })),
         connections: parsed.connections || [],
         foundation: parsed.foundation || [],
@@ -368,6 +384,29 @@ Return ONLY valid JSON:
     }
     
     return { schedules: [], dimensions: [], itemCounts: [] };
+  }
+
+  /** Extract quantity from callout text using regex patterns */
+  private extractQuantity(text: string): number {
+    if (!text) return 1;
+    
+    // Pattern: (4) B1 → qty: 4
+    const parenthesesMatch = text.match(/\((\d+)\)/);
+    if (parenthesesMatch) return parseInt(parenthesesMatch[1]);
+    
+    // Pattern: B1 (TYP. 3 PLACES) → qty: 3
+    const typicalMatch = text.match(/TYP\.?\s*(\d+)\s*PLACES?/i);
+    if (typicalMatch) return parseInt(typicalMatch[1]);
+    
+    // Pattern: QTY: 2 → qty: 2
+    const qtyMatch = text.match(/QTY:?\s*(\d+)/i);
+    if (qtyMatch) return parseInt(qtyMatch[1]);
+    
+    // Pattern: B1 x 4 → qty: 4
+    const multiplyMatch = text.match(/\s+x\s+(\d+)$/i);
+    if (multiplyMatch) return parseInt(multiplyMatch[1]);
+    
+    return 1; // Default quantity
   }
 
   /** Fix common OCR misreads in structural callouts */
@@ -514,6 +553,33 @@ Return ONLY valid JSON:
     return Math.round(confidence * 100) / 100; // Round to 2 decimal places
   }
 
+  /** Extract proper joist mark from vision data */
+  private extractJoistMark(joist: any, index: number): string {
+    const rawMark = this.fixOcrErrors(joist.mark || '');
+    
+    // Check if already a valid designation (D1, D2, etc.)
+    if (/^[A-Z]\d+$/.test(rawMark)) {
+      return rawMark;
+    }
+    
+    // Look for zone designations in spec or other fields
+    const spec = joist.spec || '';
+    const span = joist.span || '';
+    const spacing = joist.spacing || '';
+    const allText = `${rawMark} ${spec} ${span} ${spacing}`;
+    
+    // Extract zone designation from text (D1, D2, AREA 1, ZONE A)
+    const zoneMatch = allText.match(/\b([D]\d+|AREA\s*(\d+)|ZONE\s*([A-Z]))\b/i);
+    if (zoneMatch) {
+      if (zoneMatch[1]?.startsWith('D')) return zoneMatch[1];
+      if (zoneMatch[2]) return `D${zoneMatch[2]}`;
+      if (zoneMatch[3]) return `D${zoneMatch[3].charCodeAt(0) - 64}`; // A=1, B=2, etc.
+    }
+    
+    // Generate sequential mark if no designation found
+    return `J${index + 1}`;
+  }
+
   /** Check if mark follows valid structural naming patterns */
   private isValidMark(mark: string): boolean {
     const patterns = [
@@ -527,15 +593,21 @@ Return ONLY valid JSON:
     return patterns.some(pattern => pattern.test(mark.trim()));
   }
 
-  /** Check if size format follows valid dimension patterns */
+  /** Check if size format follows valid structural member patterns */
   private isValidSizeFormat(size: string): boolean {
     const patterns = [
-      /^\d+'-\d+"$/,          // 24'-6"
-      /^\d+'-0"$/,            // 18'-0"
-      /^@\s*\d+"\s*OC$/,      // @ 16" OC
-      /^\d+"\s*@\s*\d+"\s*OC$/, // 16" @ 16" OC
-      /^\d+\s*LB$/,           // 1050 LB
-      /^\d+'-\d+"\s*span$/    // 24'-6" span
+      /^W\d+x\d+$/,                                    // W18x106
+      /^HSS\d+x\d+x[\d\/]+$/,                         // HSS6x6x1/4
+      /^\d+["\s]*TJI\s*\d+$/,                         // 14" TJI 560
+      /^\d+K\d+$/,                                    // 18K4
+      /^\d+\s*\d*\/?\d*["\s]*x\s*\d+["\s]*$/,        // 3 1/2" x 14"
+      /^\d+\s*\d*\/?\d*["\s]*x\s*\d+["\s]*(GLB|LVL|PSL)$/, // 5 1/8" x 18" GLB
+      /^\d+'-\d+"$/,                                  // 24'-6"
+      /^\d+'-0"$/,                                    // 18'-0"
+      /^@\s*\d+"\s*OC$/,                              // @ 16" OC
+      /^\d+"\s*@\s*\d+"\s*OC$/,                       // 16" @ 16" OC
+      /^\d+\s*LB$/,                                   // 1050 LB
+      /^\d+'-\d+"\s*span$/                            // 24'-6" span
     ];
     return patterns.some(pattern => pattern.test(size.trim()));
   }
