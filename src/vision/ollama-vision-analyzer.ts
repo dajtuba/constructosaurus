@@ -429,6 +429,39 @@ Return ONLY valid JSON:
     return 1; // Default quantity
   }
 
+  /** Parse and normalize grid location patterns */
+  private parseGridLocation(gridText: string): string {
+    if (!gridText || gridText.trim().length === 0) return '';
+    
+    const text = gridText.trim();
+    
+    // Normalize common grid location patterns
+    const patterns = [
+      // "@ A/1" or "at A/1" -> "A/1"
+      { regex: /(?:@|at)\s*([A-Z]\d*\/\d+)/i, replacement: '$1' },
+      // "at grid B/2" -> "B/2"
+      { regex: /at\s+grid\s+([A-Z]\d*\/\d+)/i, replacement: '$1' },
+      // "between A-B" -> "A-B"
+      { regex: /between\s+([A-Z]\d*-[A-Z]\d*)/i, replacement: '$1' },
+      // "grid line A" -> "A"
+      { regex: /grid\s+line\s+([A-Z]\d*)/i, replacement: '$1' },
+      // "A to B" -> "A-B"
+      { regex: /([A-Z]\d*)\s+to\s+([A-Z]\d*)/i, replacement: '$1-$2' },
+      // "column @ B/3" -> "B/3"
+      { regex: /(?:column|beam|joist)\s*@\s*([A-Z]\d*\/\d+)/i, replacement: '$1' }
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern.regex);
+      if (match) {
+        return match[0].replace(pattern.regex, pattern.replacement);
+      }
+    }
+    
+    // If no pattern matches, return cleaned text (remove extra spaces, normalize case)
+    return text.replace(/\s+/g, ' ').toUpperCase();
+  }
+
   /** Fix common OCR misreads in structural callouts */
   private fixOcrErrors(text: string): string {
     return text
