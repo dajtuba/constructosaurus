@@ -9,11 +9,36 @@ export interface StructuralMember {
   type?: string;
 }
 
+export interface BeamScheduleEntry {
+  mark: string;
+  size: string;
+  length?: string;
+  gridStart?: string;
+  gridEnd?: string;
+  camber?: string;
+  connectionLeft?: string;
+  connectionRight?: string;
+  quantity: number;
+  location?: string;
+  elevation?: string;
+}
+
 export interface LoadCapacity {
   dimension?: string;
   capacity?: number;
   height?: string;
   material?: string;
+}
+
+export interface PierSchedule {
+  mark?: string;
+  diameter?: string;
+  depth?: string;
+  rebarVertical?: string;
+  rebarSpiral?: string;
+  concreteStrength?: string;
+  gridLocation?: string;
+  topElevation?: string;
 }
 
 export class StructuralTableParser {
@@ -89,6 +114,99 @@ export class StructuralTableParser {
     }
     
     return capacities;
+  }
+
+  parsePierSchedule(table: ExtractedTable): PierSchedule[] {
+    const piers: PierSchedule[] = [];
+    
+    for (const row of table.rows) {
+      const rowText = row.join(' ');
+      
+      // Look for pier marks (P1, P2, etc.)
+      const markMatch = rowText.match(/\b(P\d+)\b/);
+      
+      if (markMatch) {
+        const pier: PierSchedule = {
+          mark: markMatch[1]
+        };
+        
+        // Extract diameter (e.g., "18\"")
+        const diameterMatch = rowText.match(/(\d+)"(?!\s*x)/);
+        if (diameterMatch) pier.diameter = diameterMatch[1] + '"';
+        
+        // Extract depth (e.g., "8'-0\"")
+        const depthMatch = rowText.match(/(\d+'-\d+")/);
+        if (depthMatch) pier.depth = depthMatch[1];
+        
+        // Extract vertical rebar (e.g., "6-#6")
+        const rebarVertMatch = rowText.match(/(\d+-#\d+)/);
+        if (rebarVertMatch) pier.rebarVertical = rebarVertMatch[1];
+        
+        // Extract spiral rebar (e.g., "#3 @ 4\" pitch")
+        const rebarSpiralMatch = rowText.match(/(#\d+\s*@\s*\d+"\s*pitch)/i);
+        if (rebarSpiralMatch) pier.rebarSpiral = rebarSpiralMatch[1];
+        
+        // Extract concrete strength (e.g., "4000 psi")
+        const concreteMatch = rowText.match(/(\d+\s*psi)/i);
+        if (concreteMatch) pier.concreteStrength = concreteMatch[1];
+        
+        // Extract grid location (e.g., "A/1")
+        const gridMatch = rowText.match(/\b([A-Z]\/\d+)\b/);
+        if (gridMatch) pier.gridLocation = gridMatch[1];
+        
+        // Extract top elevation (e.g., "+0'-6\"")
+        const elevMatch = rowText.match(/([+-]\d+'-\d+")/);
+        if (elevMatch) pier.topElevation = elevMatch[1];
+        
+        piers.push(pier);
+      }
+    }
+    
+    return piers;
+  }
+
+  parseBeamSchedule(table: ExtractedTable): BeamScheduleEntry[] {
+    if (table.rows.length < 2) return [];
+    
+    const headers = this.normalizeHeaders(table.rows[0]);
+    const columnMap = this.mapHeaders(headers, {
+      mark: ['mark', 'beam', 'id', 'designation'],
+      size: ['size', 'section', 'shape', 'member'],
+      length: ['length', 'span', 'len'],
+      gridStart: ['grid_start', 'start_grid', 'from_grid', 'start'],
+      gridEnd: ['grid_end', 'end_grid', 'to_grid', 'end'],
+      camber: ['camber', 'camb'],
+      connectionLeft: ['conn_left', 'left_conn', 'connection_left', 'left'],
+      connectionRight: ['conn_right', 'right_conn', 'connection_right', 'right'],
+      quantity: ['qty', 'quantity', 'count', 'no'],
+      location: ['location', 'grid', 'gridline', 'bay'],
+      elevation: ['elevation', 'elev', 'level']
+    });
+    
+    const entries: BeamScheduleEntry[] = [];
+    
+    for (let i = 1; i < table.rows.length; i++) {
+      const row = table.rows[i];
+      const mark = this.getCell(row, columnMap.mark);
+      const size = this.getCell(row, columnMap.size);
+      if (!mark && !size) continue;
+      
+      entries.push({
+        mark: mark || size || '',
+        size: size || mark || '',
+        length: this.getCell(row, columnMap.length),
+        gridStart: this.getCell(row, columnMap.gridStart),
+        gridEnd: this.getCell(row, columnMap.gridEnd),
+        camber: this.getCell(row, columnMap.camber),
+        connectionLeft: this.getCell(row, columnMap.connectionLeft),
+        connectionRight: this.getCell(row, columnMap.connectionRight),
+        quantity: parseInt(this.getCell(row, columnMap.quantity) || '1') || 1,
+        location: this.getCell(row, columnMap.location),
+        elevation: this.getCell(row, columnMap.elevation)
+      });
+    }
+    
+    return entries;
   }
 
   classifyStructuralTable(table: ExtractedTable): string {

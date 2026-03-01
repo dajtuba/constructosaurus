@@ -7,6 +7,7 @@ export class ScheduleStore {
   private entriesPath: string;
   private schedules: Map<string, ScheduleMetadata> = new Map();
   private entries: Map<string, ScheduleEntry[]> = new Map();
+  private existingKeys: Set<string> = new Set();
 
   constructor(private dataPath: string) {
     this.schedulesPath = path.join(dataPath, 'schedules.json');
@@ -23,10 +24,32 @@ export class ScheduleStore {
       if (fs.existsSync(this.entriesPath)) {
         const data = JSON.parse(fs.readFileSync(this.entriesPath, 'utf-8'));
         this.entries = new Map(Object.entries(data));
+        
+        // Populate existing keys
+        this.existingKeys.clear();
+        for (const [scheduleId, entries] of this.entries) {
+          const schedule = this.schedules.get(scheduleId);
+          if (schedule) {
+            entries.forEach(entry => {
+              const key = this.generateEntryKey(entry, schedule.scheduleType);
+              this.existingKeys.add(key);
+            });
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading schedules:', error);
     }
+  }
+
+  private generateEntryKey(entry: ScheduleEntry, scheduleType: string): string {
+    if (scheduleType === 'beam_schedule' || scheduleType === 'pier_schedule') {
+      return `${entry.data.sheetNumber}-${entry.mark}-${entry.data.gridLocation}`;
+    }
+    if (scheduleType === 'door_schedule') {
+      return `${entry.data.sheetNumber}-${entry.mark}`;
+    }
+    return `${entry.data.sheetNumber}-${entry.mark}`;
   }
 
   private save() {
@@ -52,14 +75,17 @@ export class ScheduleStore {
   }
 
   addEntry(entry: ScheduleEntry) {
+    const schedule = this.schedules.get(entry.scheduleId);
+    if (!schedule) return;
+    
+    const key = this.generateEntryKey(entry, schedule.scheduleType);
+    if (this.existingKeys.has(key)) return;
+    
     const entries = this.entries.get(entry.scheduleId) || [];
-    // Deduplicate by mark within same schedule
-    const existing = entries.find(e => e.mark === entry.mark && e.rowNumber === entry.rowNumber);
-    if (!existing) {
-      entries.push(entry);
-      this.entries.set(entry.scheduleId, entries);
-      this.save();
-    }
+    entries.push(entry);
+    this.entries.set(entry.scheduleId, entries);
+    this.existingKeys.add(key);
+    this.save();
   }
 
   getSchedulesByDocument(documentId: string): ScheduleMetadata[] {
@@ -104,6 +130,7 @@ export class ScheduleStore {
   clear() {
     this.schedules.clear();
     this.entries.clear();
+    this.existingKeys.clear();
     this.save();
   }
 }

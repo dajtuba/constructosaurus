@@ -22,10 +22,28 @@ export interface BeamScheduleEntry {
   mark: string;
   size: string;
   length?: string;
+  gridStart?: string;
+  gridEnd?: string;
+  camber?: string;
+  connectionLeft?: string;
+  connectionRight?: string;
   quantity: number;
   location?: string;
   elevation?: string;
   connection?: string;
+}
+
+export interface DoorScheduleEntry {
+  mark: string;
+  width?: string;
+  height?: string;
+  frameType?: string;
+  doorType?: string;
+  hardwareSet?: string;
+  fireRating?: string;
+  roomFrom?: string;
+  roomTo?: string;
+  data: Record<string, any>;
 }
 
 export interface ColumnScheduleEntry {
@@ -68,28 +86,46 @@ export class ScheduleParser {
     return entries;
   }
 
-  parseDoorSchedule(table: ExtractedTable): ScheduleEntry[] {
+  parseDoorSchedule(table: ExtractedTable): DoorScheduleEntry[] {
     if (table.rows.length < 2) return [];
     
     const headers = this.normalizeHeaders(table.rows[0]);
-    const entries: ScheduleEntry[] = [];
+    const columnMap = this.mapHeaders(headers, {
+      mark: ['mark', 'door', 'id', 'no'],
+      width: ['width', 'w'],
+      height: ['height', 'h', 'ht'],
+      frameType: ['frame', 'frame_type', 'framing'],
+      doorType: ['type', 'door_type', 'style'],
+      hardwareSet: ['hardware', 'hw', 'hardware_set'],
+      fireRating: ['fire', 'rating', 'fire_rating', 'fr'],
+      roomFrom: ['from', 'room_from', 'from_room'],
+      roomTo: ['to', 'room_to', 'to_room']
+    });
+    
+    const entries: DoorScheduleEntry[] = [];
     
     for (let i = 1; i < table.rows.length; i++) {
       const row = table.rows[i];
-      const entry: Record<string, any> = {};
+      const mark = this.getCell(row, columnMap.mark);
+      if (!mark) continue;
       
+      const entry: Record<string, any> = {};
       headers.forEach((header, idx) => {
-        if (row[idx]) {
-          entry[header] = row[idx];
-        }
+        if (row[idx]) entry[header] = row[idx];
       });
       
-      if (entry[headers[0]]) { // Has mark/id in first column
-        entries.push({
-          mark: entry[headers[0]],
-          data: entry
-        });
-      }
+      entries.push({
+        mark,
+        width: this.getCell(row, columnMap.width),
+        height: this.getCell(row, columnMap.height),
+        frameType: this.getCell(row, columnMap.frameType),
+        doorType: this.getCell(row, columnMap.doorType),
+        hardwareSet: this.getCell(row, columnMap.hardwareSet),
+        fireRating: this.getCell(row, columnMap.fireRating),
+        roomFrom: this.getCell(row, columnMap.roomFrom),
+        roomTo: this.getCell(row, columnMap.roomTo),
+        data: entry
+      });
     }
     
     return entries;
@@ -107,6 +143,11 @@ export class ScheduleParser {
       mark: ['mark', 'beam', 'id', 'designation'],
       size: ['size', 'section', 'shape', 'member'],
       length: ['length', 'span', 'len'],
+      gridStart: ['grid_start', 'start_grid', 'from_grid', 'start'],
+      gridEnd: ['grid_end', 'end_grid', 'to_grid', 'end'],
+      camber: ['camber', 'camb'],
+      connectionLeft: ['conn_left', 'left_conn', 'connection_left', 'left'],
+      connectionRight: ['conn_right', 'right_conn', 'connection_right', 'right'],
       quantity: ['qty', 'quantity', 'count', 'no'],
       location: ['location', 'grid', 'gridline', 'bay'],
       elevation: ['elevation', 'elev', 'level'],
@@ -125,6 +166,11 @@ export class ScheduleParser {
         mark: mark || size || '',
         size: size || mark || '',
         length: this.getCell(row, columnMap.length),
+        gridStart: this.getCell(row, columnMap.gridStart),
+        gridEnd: this.getCell(row, columnMap.gridEnd),
+        camber: this.getCell(row, columnMap.camber),
+        connectionLeft: this.getCell(row, columnMap.connectionLeft),
+        connectionRight: this.getCell(row, columnMap.connectionRight),
         quantity: parseInt(this.getCell(row, columnMap.quantity) || '1') || 1,
         location: this.getCell(row, columnMap.location),
         elevation: this.getCell(row, columnMap.elevation),

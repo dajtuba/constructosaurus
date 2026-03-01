@@ -80,6 +80,29 @@ class ConstructosaurusServer {
     this.setupHandlers();
   }
 
+  private async ensureInitialized() {
+    if (!this.searchEngine) {
+      throw new Error("Search engine not initialized");
+    }
+    
+    // Check if table exists
+    const table = (this.searchEngine as any).table;
+    if (!table) {
+      console.error("Table not initialized, attempting to initialize...");
+      try {
+        await this.searchEngine.initialize();
+        const tableAfter = (this.searchEngine as any).table;
+        if (!tableAfter) {
+          throw new Error("Table still undefined after initialization - database may be empty or corrupted");
+        }
+        console.error("Table initialized successfully");
+      } catch (error) {
+        console.error("Failed to initialize table:", error);
+        throw new Error(`Database initialization failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
+
   private setupHandlers() {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
@@ -394,6 +417,8 @@ class ConstructosaurusServer {
   }
 
   private async handleExtractMaterials(args: any) {
+    await this.ensureInitialized();
+    
     // Search for relevant chunks
     const results = await this.searchEngine.search({
       query: args.query,
@@ -435,6 +460,7 @@ class ConstructosaurusServer {
   }
 
   private async handleSearch(args: any) {
+    await this.ensureInitialized();
     const searchParams = {
       query: args.query,
       discipline: args.discipline,
@@ -670,6 +696,8 @@ class ConstructosaurusServer {
   }
 
   private async handleDetectConflicts(args: any) {
+    await this.ensureInitialized();
+    
     const results = await this.searchEngine.search({
       query: args.query,
       discipline: args.discipline,
@@ -703,6 +731,8 @@ class ConstructosaurusServer {
   }
 
   private async handleQueryMember(args: any) {
+    await this.ensureInitialized();
+    
     // Fast database query for member designation
     const results = await this.searchEngine.search({
       query: args.designation,
@@ -746,6 +776,8 @@ class ConstructosaurusServer {
   }
 
   private async handleGetMaterialTakeoff(args: any) {
+    await this.ensureInitialized();
+    
     // Fast query for material takeoff by sheet
     const results = await this.searchEngine.search({
       query: `sheet ${args.sheet} materials quantities`,
@@ -796,6 +828,8 @@ class ConstructosaurusServer {
   }
 
   private async handleFindConflicts(args: any) {
+    await this.ensureInitialized();
+    
     // Fast query for pre-computed conflicts
     let query = "conflict mismatch different";
     if (args.sheet) {
@@ -839,6 +873,8 @@ class ConstructosaurusServer {
   }
 
   private async handleListSheets(args: any) {
+    await this.ensureInitialized();
+    
     // Fast query for all sheets
     const results = await this.searchEngine.search({
       query: "sheet drawing",
@@ -879,6 +915,8 @@ class ConstructosaurusServer {
   }
 
   private async handleSearchDocuments(args: any) {
+    await this.ensureInitialized();
+    
     // Fast semantic search
     const results = await this.searchEngine.search({
       query: args.text,

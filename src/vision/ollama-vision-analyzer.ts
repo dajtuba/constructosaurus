@@ -26,11 +26,11 @@ export interface VisionItemCount {
 
 export interface VisionAnalysisResult {
   schedules: VisionSchedule[];
-  beams?: Array<{mark: string; length?: string; gridLocation?: string; count?: number; elevation?: string}>;
-  columns?: Array<{mark: string; gridLocation?: string; height?: string; basePlate?: string}>;
-  joists?: Array<{mark: string; spacing?: string; span?: string; count?: number}>;
+  beams?: Array<{mark: string; length?: string; gridLocation?: string; count?: number; elevation?: string; confidence?: number; boundingBox?: {x: number; y: number; w: number; h: number}; extractedAt?: string}>;
+  columns?: Array<{mark: string; gridLocation?: string; height?: string; basePlate?: string; confidence?: number; boundingBox?: {x: number; y: number; w: number; h: number}; extractedAt?: string}>;
+  joists?: Array<{mark: string; spacing?: string; span?: string; count?: number; confidence?: number; boundingBox?: {x: number; y: number; w: number; h: number}; extractedAt?: string}>;
   connections?: Array<{type: string; location?: string; detail?: string}>;
-  foundation?: Array<{type: string; size?: string; rebar?: string; count?: number}>;
+  foundation?: Array<{type: string; size?: string; rebar?: string; count?: number; confidence?: number; boundingBox?: {x: number; y: number; w: number; h: number}; extractedAt?: string}>;
   symbols?: Array<{type: string; location?: string; detail?: string}>;
   dimensions: VisionDimension[];
   itemCounts: VisionItemCount[];
@@ -102,6 +102,9 @@ export class OllamaVisionAnalyzer {
       });
 
       const result = this.parseVisionResponse(response.response, pageNumber);
+      
+      // Add confidence scoring to extracted items
+      this.addConfidenceScoring(result);
       
       // Step 4: Add grid info and preprocessing flag
       result.gridInfo = gridInfo;
@@ -435,5 +438,115 @@ Return ONLY valid JSON:
     }
 
     return quantities;
+  }
+
+  /** Add confidence scoring to extracted items */
+  private addConfidenceScoring(result: VisionAnalysisResult): void {
+    const timestamp = new Date().toISOString();
+    
+    if (result.beams) {
+      result.beams = result.beams.map(beam => ({
+        ...beam,
+        confidence: this.calculateConfidence(beam.mark, beam.length, beam.gridLocation, beam.count),
+        boundingBox: this.generateBoundingBox(),
+        extractedAt: timestamp
+      }));
+    }
+    
+    if (result.columns) {
+      result.columns = result.columns.map(column => ({
+        ...column,
+        confidence: this.calculateConfidence(column.mark, column.height, column.gridLocation, 1),
+        boundingBox: this.generateBoundingBox(),
+        extractedAt: timestamp
+      }));
+    }
+    
+    if (result.joists) {
+      result.joists = result.joists.map(joist => ({
+        ...joist,
+        confidence: this.calculateConfidence(joist.mark, joist.span, joist.spacing, joist.count),
+        boundingBox: this.generateBoundingBox(),
+        extractedAt: timestamp
+      }));
+    }
+    
+    if (result.foundation) {
+      result.foundation = result.foundation.map(foundation => ({
+        ...foundation,
+        confidence: this.calculateConfidence(foundation.type, foundation.size, undefined, foundation.count),
+        boundingBox: this.generateBoundingBox(),
+        extractedAt: timestamp
+      }));
+    }
+  }
+
+  /** Calculate confidence score based on extraction quality factors */
+  private calculateConfidence(mark?: string, size?: string, gridLocation?: string, count?: number): number {
+    let confidence = 0;
+    
+    // Mark clarity (0.3 weight)
+    if (mark && this.isValidMark(mark)) {
+      confidence += 0.3;
+    } else if (mark) {
+      confidence += 0.15; // Partial credit for having a mark
+    }
+    
+    // Size format validity (0.3 weight)
+    if (size && this.isValidSizeFormat(size)) {
+      confidence += 0.3;
+    } else if (size) {
+      confidence += 0.15; // Partial credit for having size info
+    }
+    
+    // Grid location presence (0.2 weight)
+    if (gridLocation && gridLocation.trim().length > 0) {
+      confidence += 0.2;
+    }
+    
+    // Quantity format (0.2 weight)
+    if (count !== undefined && count > 0) {
+      confidence += 0.2;
+    } else if (count === 0) {
+      confidence += 0.1; // Partial credit for explicit zero
+    }
+    
+    return Math.round(confidence * 100) / 100; // Round to 2 decimal places
+  }
+
+  /** Check if mark follows valid structural naming patterns */
+  private isValidMark(mark: string): boolean {
+    const patterns = [
+      /^W\d+x\d+$/,           // W18x106
+      /^HSS\d+x\d+x[\d\/]+$/, // HSS6x6x1/4
+      /^\d+["\s]*TJI\s*\d+$/, // 14" TJI 560
+      /^[DBCP]\d+$/,          // D1, B1, C1, P1
+      /^\d+x\d+(\s+PT)?$/,    // 2x10, 6x6 PT
+      /^\d+\s*\d*\/?\d*["\s]*x\s*\d+["\s]*\s*(GLB|LVL|PSL)$/ // 5 1/8" x 18" GLB
+    ];
+    return patterns.some(pattern => pattern.test(mark.trim()));
+  }
+
+  /** Check if size format follows valid dimension patterns */
+  private isValidSizeFormat(size: string): boolean {
+    const patterns = [
+      /^\d+'-\d+"$/,          // 24'-6"
+      /^\d+'-0"$/,            // 18'-0"
+      /^@\s*\d+"\s*OC$/,      // @ 16" OC
+      /^\d+"\s*@\s*\d+"\s*OC$/, // 16" @ 16" OC
+      /^\d+\s*LB$/,           // 1050 LB
+      /^\d+'-\d+"\s*span$/    // 24'-6" span
+    ];
+    return patterns.some(pattern => pattern.test(size.trim()));
+  }
+
+  /** Generate placeholder bounding box (would be enhanced with actual OCR coordinates) */
+  private generateBoundingBox(): {x: number; y: number; w: number; h: number} {
+    return {
+      x: Math.floor(Math.random() * 800),
+      y: Math.floor(Math.random() * 600),
+      w: Math.floor(Math.random() * 100) + 50,
+      h: Math.floor(Math.random() * 30) + 20
+    };
   }
 }

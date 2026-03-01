@@ -43,6 +43,10 @@ export class HybridSearchEngine {
   }
 
   async search(params: SearchParams, resolveRefs: boolean = true): Promise<SearchResult[]> {
+    if (!this.table) {
+      throw new Error("Database table not initialized. Run 'npm run process' to ingest documents first.");
+    }
+    
     const { query, discipline, drawingType, project, sheetNumbers, top_k = 10 } = params;
 
     // Detect query intent

@@ -31,6 +31,8 @@ export interface ProcessingResult {
   visionItemCounts?: number;
 }
 
+export type PageCallback = (sheets: Sheet[]) => Promise<void>;
+
 export class IntelligentDocumentProcessor {
   private classifier: DocumentClassifier;
   private sheetProcessor: SheetProcessor;
@@ -102,7 +104,7 @@ export class IntelligentDocumentProcessor {
     fs.writeFileSync(this.progressFile(pdfPath), JSON.stringify(state, null, 2));
   }
 
-  async processDocument(pdfPath: string): Promise<ProcessingResult> {
+  async processDocument(pdfPath: string, onPageComplete?: PageCallback): Promise<ProcessingResult> {
     console.log(`\n📄 Processing: ${pdfPath}`);
     
     // Stage 1: Classify document
@@ -153,6 +155,14 @@ export class IntelligentDocumentProcessor {
         
         if (chunks.length > 1) {
           console.log(`    Sheet ${i + 1}: ${sheet.text.length} chars → ${chunks.length} chunks`);
+        }
+        
+        // Write to database after each page
+        if (onPageComplete) {
+          const pageSheets = sheets.filter(s => s.pageNumber === sheet.pageNumber);
+          if (pageSheets.length > 0) {
+            await onPageComplete(pageSheets);
+          }
         }
         
         if (i < rawSheets.length - 1) {

@@ -51,74 +51,57 @@ async function processDocuments() {
   });
   console.log();
 
-  // Process each PDF
-  const allSheets: any[] = [];
-  const allSchedules: any[] = [];
-
+  // Initialize database first
+  await searchEngine.initialize();
+  
+  // Process each PDF separately
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    console.log(`\n[${ i + 1}/${files.length}] Processing: ${path.basename(file)}`);
+    console.log(`\n[${i + 1}/${files.length}] Processing: ${path.basename(file)}`);
     console.log("=".repeat(70));
 
     try {
-      const result = await processor.processDocument(file);
+      const result = await processor.processDocument(file, async (pageSheets) => {
+        // Write each page to database immediately
+        const sheetsForDb = pageSheets.map(sheet => ({
+          id: sheet.id,
+          text: sheet.text,
+          project: sheet.metadata.project || "",
+          discipline: sheet.metadata.discipline || "",
+          drawingType: sheet.metadata.drawingType || "",
+          drawingNumber: sheet.metadata.drawingNumber || "",
+          sheetNumber: sheet.metadata.drawingNumber || "",
+          pageNumber: sheet.pageNumber || 0,
+          materials: sheet.metadata.materials || "",
+          components: sheet.metadata.components || "",
+          vector: sheet.vector,
+        }));
+        
+        await searchEngine.addDocuments(sheetsForDb);
+        console.log(`    💾 Wrote page ${pageSheets[0].pageNumber} (${sheetsForDb.length} chunks)`);
+      });
       
-      allSheets.push(...result.sheets);
-      allSchedules.push(...result.schedules);
-
       console.log(`✅ Processed: ${result.sheets.length} sheets, ${result.schedules.length} schedules`);
     } catch (error: any) {
       console.error(`❌ Error processing ${path.basename(file)}: ${error.message}`);
     }
   }
 
-  // Store in database
+  // Final summary
   console.log("\n" + "=".repeat(70));
-  console.log("💾 Storing in database...\n");
-
-  await searchEngine.initialize();
-
-  // Convert sheets to database format
-  const sheetsForDb = allSheets.map(sheet => ({
-    id: sheet.id,
-    text: sheet.text,
-    project: sheet.metadata.project || "",
-    discipline: sheet.metadata.discipline || "",
-    drawingType: sheet.metadata.drawingType || "",
-    drawingNumber: sheet.metadata.drawingNumber || "",
-    sheetNumber: sheet.metadata.drawingNumber || "",
-    pageNumber: sheet.pageNumber || 0,
-    materials: sheet.metadata.materials || "",
-    components: sheet.metadata.components || "",
-    vector: sheet.vector,
-  }));
-
-  if (sheetsForDb.length > 0) {
-    await searchEngine.createTable(sheetsForDb);
-    console.log(`✅ Stored ${sheetsForDb.length} sheets in database`);
-  }
+  console.log("💾 Database write complete\n");
 
   // Summary
   console.log("\n" + "=".repeat(70));
   console.log("📊 PROCESSING COMPLETE\n");
   console.log(`Total PDFs processed: ${files.length}`);
-  console.log(`Total sheets: ${allSheets.length}`);
-  console.log(`Total schedules: ${allSchedules.length}`);
+  console.log(`Total PDFs processed: ${files.length}`);
   console.log(`Database: ${dbPath}`);
-  
-  if (allSheets.length > 0) {
-    const projects = new Set(allSheets.map(s => s.metadata.project).filter(Boolean));
-    const disciplines = new Set(allSheets.map(s => s.metadata.discipline).filter(Boolean));
-    
-    console.log(`\nProjects: ${Array.from(projects).join(", ")}`);
-    console.log(`Disciplines: ${Array.from(disciplines).join(", ")}`);
-  }
 
   console.log("\n✅ Ready for Claude Desktop!");
   console.log("\nNext steps:");
-  console.log("1. Run: ./setup-claude-desktop.sh");
-  console.log("2. Restart Claude Desktop");
-  console.log("3. Start asking questions about your documents");
+  console.log("1. Restart Claude Desktop");
+  console.log("2. Start asking questions about your documents");
 }
 
 processDocuments().catch(console.error);
