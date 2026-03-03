@@ -256,6 +256,21 @@ export class IntelligentDocumentProcessor {
         columnCount: table.rows[0]?.length || 0
       });
       
+      // Parse load tables
+      if (finalType === 'load_table' || finalType === 'forteweb_load_table') {
+        const loadEntries = this.structuralParser.parseLoadTable(table);
+        loadEntries.forEach((entry, idx) => {
+          this.scheduleStore.addEntry({
+            id: `${scheduleId}-entry-${idx}`,
+            scheduleId,
+            mark: entry.memberMark,
+            data: entry,
+            rowNumber: idx + 1
+          });
+        });
+        structuralMemberCount += loadEntries.length;
+      }
+      
       // Parse construction schedules
       if (scheduleType === 'footing_schedule') {
         const entries = this.newScheduleParser.parseFootingSchedule(table);
@@ -357,6 +372,70 @@ export class IntelligentDocumentProcessor {
           );
           
           const visionResult = await this.visionAnalyzer.analyzeDrawingPage(imagePath, pageNum, 'Structural');
+          
+          // Parse detail references from extracted text
+          const sheetText = sheets.find(s => s.pageNumber === pageNum)?.text || '';
+          const detailRefs = this.structuralParser.parseDetailReferences(sheetText);
+          if (detailRefs.length > 0) {
+            const detailScheduleId = this.generateId(pdfPath, pageNum, 'detail-references');
+            this.scheduleStore.addSchedule({
+              id: detailScheduleId,
+              documentId,
+              scheduleType: 'detail_references',
+              pageNumber: pageNum,
+              extractionMethod: 'text_parsing',
+              rowCount: detailRefs.length,
+              columnCount: 3
+            });
+            
+            detailRefs.forEach((ref, idx) => {
+              this.scheduleStore.addEntry({
+                id: `${detailScheduleId}-entry-${idx}`,
+                scheduleId: detailScheduleId,
+                mark: `${ref.detailNumber}/${ref.sheetReference}`,
+                data: ref,
+                rowNumber: idx + 1
+              });
+            });
+          }
+          
+          // Parse load tables if ForteWeb content detected
+          if (sheetText.toLowerCase().includes('forteweb') || sheetText.toLowerCase().includes('forte')) {
+            // Find tables in extracted tables that contain load data
+            const loadTables = extractedTables.filter(table => 
+              table.page === pageNum && 
+              table.rows.some(row => 
+                row.join(' ').toLowerCase().includes('forteweb') || 
+                row.join(' ').toLowerCase().includes('forte')
+              )
+            );
+            
+            loadTables.forEach((table, tableIdx) => {
+              const loadEntries = this.structuralParser.parseLoadTable(table);
+              if (loadEntries.length > 0) {
+                const loadScheduleId = this.generateId(pdfPath, pageNum, `load-table-${tableIdx}`);
+                this.scheduleStore.addSchedule({
+                  id: loadScheduleId,
+                  documentId,
+                  scheduleType: 'load_table',
+                  pageNumber: pageNum,
+                  extractionMethod: 'table_parsing',
+                  rowCount: loadEntries.length,
+                  columnCount: 5
+                });
+                
+                loadEntries.forEach((entry, idx) => {
+                  this.scheduleStore.addEntry({
+                    id: `${loadScheduleId}-entry-${idx}`,
+                    scheduleId: loadScheduleId,
+                    mark: entry.memberMark,
+                    data: entry,
+                    rowNumber: idx + 1
+                  });
+                });
+              }
+            });
+          }
           
           // Store vision-extracted beams
           if (visionResult.beams && visionResult.beams.length > 0) {
@@ -503,6 +582,38 @@ export class IntelligentDocumentProcessor {
     }
     
     console.log(`  ✅ Processed ${sheets.length} sheets, ${schedules.length} old schedules, ${extractedTables.length} tables, ${parsedScheduleCount} schedule entries, ${structuralMemberCount} structural entries`);
+    
+    // Parse detail references from all sheet text
+    console.log("  🔍 Parsing detail references...");
+    let detailRefCount = 0;
+    for (const sheet of sheets) {
+      const detailRefs = this.structuralParser.parseDetailReferences(sheet.text);
+      if (detailRefs.length > 0) {
+        const detailScheduleId = this.generateId(pdfPath, sheet.pageNumber, 'detail-references');
+        this.scheduleStore.addSchedule({
+          id: detailScheduleId,
+          documentId,
+          scheduleType: 'detail_references',
+          pageNumber: sheet.pageNumber,
+          extractionMethod: 'text_parsing',
+          rowCount: detailRefs.length,
+          columnCount: 3
+        });
+        
+        detailRefs.forEach((ref, idx) => {
+          this.scheduleStore.addEntry({
+            id: `${detailScheduleId}-entry-${idx}`,
+            scheduleId: detailScheduleId,
+            mark: `${ref.detailNumber}/${ref.sheetReference}`,
+            data: ref,
+            rowNumber: idx + 1
+          });
+        });
+        detailRefCount += detailRefs.length;
+      }
+    }
+    
+    console.log(`  ✅ Found ${detailRefCount} detail references`);
 
     return {
       classification,

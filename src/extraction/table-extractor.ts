@@ -85,6 +85,12 @@ export class TableExtractor {
     
     const headers = table.rows[0].map(h => h.toLowerCase());
     const headerText = headers.join(' ');
+    const allText = table.rows.flat().join(' ').toLowerCase();
+    
+    // ForteWeb load table
+    if (allText.includes('forteweb') || allText.includes('forte')) {
+      return 'load_table';
+    }
     
     // Footing schedule
     if (headerText.includes('mark') && 
