@@ -41,6 +41,22 @@ export interface PierSchedule {
   topElevation?: string;
 }
 
+export interface DetailReference {
+  detailNumber: string;
+  sheetReference: string;
+  gridLocation?: string;
+  confidence: number;
+}
+
+export interface LoadTableEntry {
+  memberMark: string;
+  size: string;
+  span: string;
+  loadCapacity: string;
+  designCriteria: string;
+  confidence: number;
+}
+
 export class StructuralTableParser {
   parseVerificationTable(table: ExtractedTable): StructuralMember[] {
     const members: StructuralMember[] = [];
@@ -165,6 +181,85 @@ export class StructuralTableParser {
     return piers;
   }
 
+  parseLoadTable(table: ExtractedTable): LoadTableEntry[] {
+    if (table.rows.length < 2) return [];
+    
+    const headers = this.normalizeHeaders(table.rows[0]);
+    const columnMap = this.mapHeaders(headers, {
+      memberMark: ['mark', 'member', 'designation', 'id'],
+      size: ['size', 'section', 'dimension'],
+      span: ['span', 'length', 'distance'],
+      loadCapacity: ['load', 'capacity', 'allowable', 'max'],
+      designCriteria: ['criteria', 'code', 'standard', 'basis']
+    });
+    
+    const entries: LoadTableEntry[] = [];
+    
+    for (let i = 1; i < table.rows.length; i++) {
+      const row = table.rows[i];
+      const rowText = row.join(' ');
+      
+      // Skip empty or header-like rows
+      if (!rowText.trim() || rowText.toLowerCase().includes('member')) continue;
+      
+      const memberMark = this.getCell(row, columnMap.memberMark) || this.extractMemberMark(rowText);
+      const size = this.getCell(row, columnMap.size) || this.extractSize(rowText);
+      const span = this.getCell(row, columnMap.span) || this.extractSpan(rowText);
+      const loadCapacity = this.getCell(row, columnMap.loadCapacity) || this.extractLoadCapacity(rowText);
+      const designCriteria = this.getCell(row, columnMap.designCriteria) || this.extractDesignCriteria(rowText);
+      
+      if (memberMark || size) {
+        const confidence = this.calculateConfidence(memberMark, size, span, loadCapacity, designCriteria);
+        
+        entries.push({
+          memberMark: memberMark || '',
+          size: size || '',
+          span: span || '',
+          loadCapacity: loadCapacity || '',
+          designCriteria: designCriteria || '',
+          confidence
+        });
+      }
+    }
+    
+    return entries;
+  }
+
+  private extractMemberMark(text: string): string {
+    const match = text.match(/\b([A-Z]\d+|D\d+|B\d+|J\d+)\b/);
+    return match ? match[1] : '';
+  }
+
+  private extractSize(text: string): string {
+    const match = text.match(/(\d+\s*\d*\/?\d*"\s*x\s*\d+\s*\d*\/?\d*"|TJI\s*\d+|\d+\s*x\s*\d+)/);
+    return match ? match[1] : '';
+  }
+
+  private extractSpan(text: string): string {
+    const match = text.match(/(\d+'-\d+"|@\s*\d+"\s*OC)/);
+    return match ? match[1] : '';
+  }
+
+  private extractLoadCapacity(text: string): string {
+    const match = text.match(/(\d+\.?\d*\s*(psf|plf|lbs|kips))/i);
+    return match ? match[1] : '';
+  }
+
+  private extractDesignCriteria(text: string): string {
+    const match = text.match(/(IBC|NDS|AISC|ACI|L\/\d+)/i);
+    return match ? match[1] : '';
+  }
+
+  private calculateConfidence(memberMark: string, size: string, span: string, loadCapacity: string, designCriteria: string): number {
+    let score = 0;
+    if (memberMark) score += 0.3;
+    if (size) score += 0.3;
+    if (span) score += 0.2;
+    if (loadCapacity) score += 0.15;
+    if (designCriteria) score += 0.05;
+    return Math.round(score * 100) / 100;
+  }
+
   parseBeamSchedule(table: ExtractedTable): BeamScheduleEntry[] {
     if (table.rows.length < 2) return [];
     
@@ -218,6 +313,10 @@ export class StructuralTableParser {
     if (text.includes('height') && (text.includes('hem-fir') || text.includes('doug-fir'))) {
       return 'load_capacity_table';
     }
+    if ((text.includes('forteweb') || text.includes('engineered lumber')) && 
+        (text.includes('load') || text.includes('capacity'))) {
+      return 'forteweb_load_table';
+    }
     if (text.includes('load') || text.includes('psf') || text.includes('plf')) {
       return 'load_table';
     }
@@ -252,6 +351,70 @@ export class StructuralTableParser {
     }
     
     return result;
+  }
+
+  parseDetailReferences(text: string): DetailReference[] {
+    const references: DetailReference[] = [];
+    
+    // Primary pattern: (\d+)/(S\d+\.\d+)
+    const primaryPattern = /(\d+)\/(S\d+\.\d+)/g;
+    
+    // Alternative patterns for variations
+    const patterns = [
+      /(\d+)\/(S\d+\.\d+)/g,           // 1/S2.2, 3/S3.0
+      /(\d+)\/([A-Z]\d+\.\d+)/g,       // 1/A2.1, 2/E3.0  
+      /(\d+)\s*\/\s*(S\d+\.\d+)/g,     // 1 / S2.2 (with spaces)
+      /(\d+)-([A-Z]\d+\.\d+)/g,        // 1-S2.2 (dash separator)
+      /Detail\s*(\d+)\s*\/\s*(S\d+\.\d+)/gi, // Detail 1/S2.2
+      /(\d+)\s*@\s*(S\d+\.\d+)/g       // 1@S2.2
+    ];
+    
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(text)) !== null) {
+        const detailNumber = match[1];
+        const sheetReference = match[2];
+        
+        // Calculate confidence based on pattern match quality
+        let confidence = 0.8; // Base confidence
+        
+        // Higher confidence for standard pattern
+        if (pattern === primaryPattern) {
+          confidence = 0.95;
+        }
+        
+        // Check for grid location context around the match
+        const contextStart = Math.max(0, match.index - 20);
+        const contextEnd = Math.min(text.length, match.index + match[0].length + 20);
+        const context = text.substring(contextStart, contextEnd);
+        
+        // Look for grid references near the detail callout
+        const gridMatch = context.match(/(?:at\s+|@\s*)?([A-Z]\d*\/\d+|[A-Z]\d*-[A-Z]\d*|\b[A-Z]\d*\b)/);
+        const gridLocation = gridMatch ? gridMatch[1] : undefined;
+        
+        // Boost confidence if grid location found
+        if (gridLocation) {
+          confidence = Math.min(0.98, confidence + 0.1);
+        }
+        
+        // Avoid duplicates
+        const exists = references.some(ref => 
+          ref.detailNumber === detailNumber && 
+          ref.sheetReference === sheetReference
+        );
+        
+        if (!exists) {
+          references.push({
+            detailNumber,
+            sheetReference,
+            gridLocation,
+            confidence: Math.round(confidence * 100) / 100
+          });
+        }
+      }
+    }
+    
+    return references.sort((a, b) => b.confidence - a.confidence);
   }
 
   private getCell(row: string[], index?: number): string | undefined {

@@ -1,0 +1,56 @@
+[
+  {
+    "page": 1,
+    "beams": 0,
+    "columns": 0,
+    "joists": 0,
+    "foundation": 0,
+    "schedules": 0,
+    "scheduleTypes": [],
+    "classification": "notes_or_legend"
+  },
+  {
+    "page": 2,
+    "beams": 0,
+    "columns": 0,
+    "joists": 0,
+    "foundation": 0,
+    "schedules": 0,
+    "scheduleTypes": [],
+    "classification": "notes_or_legend"
+  },
+  {
+    "page": 3,
+    "beams": 2,
+    "columns": 2,
+    "joists": 1,
+    "foundation": 0,
+    "schedules": 1,
+    "scheduleTypes": [
+      "unknown"
+    ],
+    "classification": "has_schedules"
+  },
+  {
+    "page": 4,
+    "beams": 0,
+    "columns": 0,
+    "joists": 0,
+    "foundation": 0,
+    "schedules": 0,
+    "scheduleTypes": [],
+    "classification": "notes_or_legend"
+  },
+  {
+    "page": 6,
+    "beams": 2,
+    "columns": 2,
+    "joists": 1,
+    "foundation": 0,
+    "schedules": 1,
+    "scheduleTypes": [
+      "unknown"
+    ],
+    "classification": "has_schedules"
+  }
+]

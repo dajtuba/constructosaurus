@@ -1,0 +1,33 @@
+{
+  "schedules": [],
+  "beams": [],
+  "columns": [],
+  "joists": [],
+  "connections": [],
+  "foundation": [],
+  "symbols": [],
+  "dimensions": [],
+  "itemCounts": [],
+  "gridInfo": {
+    "horizontalGrids": [
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "verticalGrids": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E"
+    ],
+    "bayCount": 4,
+    "gridSpacing": [
+      "24'-0",
+      ", ",
+      ", "
+    ]
+  },
+  "preprocessingApplied": true
+}
